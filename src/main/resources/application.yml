@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/community?characterEncoding=utf8&serverTimezone=UTC
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jdbc:
+    template:
+      query-timeout: 3
+  devtools:
+    livereload:
+      port: 35730
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+
+mybatis:
+  type-aliases-package: com.xmy.demonowcoder.entities
+  mapper-locations: classpath:mapper/*.xml  #sql映射文件位置
+  configuration:
+    #  驼峰命名（可以不写全局；配置文件，所有全局配置文件的配置都放在configuration配置项中即可）
+    map-underscore-to-camel-case: true
+    use-generated-keys: true #主键自增
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+

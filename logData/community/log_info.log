@@ -1,0 +1,7 @@
+2022-04-15 00:09:20,713 INFO [main] c.x.d.LoggerTests [StartupInfoLogger.java:55] Starting LoggerTests on DESKTOP-H556MFJ with PID 21384 (started by ASUS in D:\DemoNowcoder)
+2022-04-15 00:09:20,715 INFO [main] c.x.d.LoggerTests [SpringApplication.java:651] No active profile set, falling back to default profiles: default
+2022-04-15 00:09:22,732 INFO [main] o.s.s.c.ThreadPoolTaskExecutor [ExecutorConfigurationSupport.java:181] Initializing ExecutorService 'applicationTaskExecutor'
+2022-04-15 00:09:22,846 INFO [main] o.s.b.a.w.s.WelcomePageHandlerMapping [WelcomePageHandlerMapping.java:58] Adding welcome page template: index
+2022-04-15 00:09:23,168 INFO [main] c.x.d.LoggerTests [StartupInfoLogger.java:61] Started LoggerTests in 3.202 seconds (JVM running for 4.574)
+2022-04-15 00:09:23,502 INFO [main] c.x.d.LoggerTests [LoggerTests.java:24] info log
+2022-04-15 00:09:23,513 INFO [SpringContextShutdownHook] o.s.s.c.ThreadPoolTaskExecutor [ExecutorConfigurationSupport.java:218] Shutting down ExecutorService 'applicationTaskExecutor'
