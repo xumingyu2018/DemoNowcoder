@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>异步请求Demo</title>
+</head>
+<body>
+<p>
+    <input onclick="send();" type="button" value="发送">
+</p>
+
+<script crossorigin="anonymous" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script>
+    function send() {
+        $.post(
+            "/community/test/ajax",
+            {"name": "张三", "age": 25},
+            //回调函数返回结果
+            function (data) {
+                console.log(typeof (data));
+                console.log(data);
+
+                //返回json字符串格式(fastJson)
+                data = $.parseJSON(data);
+                console.log(typeof (data));
+                console.log(data.code);
+                console.log(data.msg);
+            }
+        )
+    }
+</script>
+</body>
+</html>

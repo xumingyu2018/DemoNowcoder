@@ -1,23 +1,18 @@
 package com.xmy.demonowcoder;
 
-import com.xmy.demonowcoder.Service.TestService;
 import com.xmy.demonowcoder.dao.DiscussPostMapper;
-import com.xmy.demonowcoder.dao.TestDao;
+import com.xmy.demonowcoder.dao.LoginTicketMapper;
 import com.xmy.demonowcoder.dao.UserMapper;
 import com.xmy.demonowcoder.entities.DiscussPost;
+import com.xmy.demonowcoder.entities.LoginTicket;
 import com.xmy.demonowcoder.entities.User;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -32,8 +27,11 @@ class MapperTests {//ApplicationContextAware实现spring容器
     @Autowired
     private DiscussPostMapper discussPostMapper;
 
+    @Autowired
+    private LoginTicketMapper loginTicketMapper;
+
     @Test
-    public void testSelectUser(){
+    public void testSelectUser() {
         User user1 = userMapper.selectById(101);
         System.out.println(user1);
 
@@ -67,9 +65,9 @@ class MapperTests {//ApplicationContextAware实现spring容器
     }
 
     @Test
-    public void testSelectPosts(){
+    public void testSelectPosts() {
         List<DiscussPost> list = discussPostMapper.selectDiscussPosts(0, 0, 10);
-        for(DiscussPost post:list){
+        for (DiscussPost post : list) {
             System.out.println(post);
         }
 
@@ -77,6 +75,27 @@ class MapperTests {//ApplicationContextAware实现spring容器
         System.out.println(rows);
     }
 
+    @Test
+    public void testInsertLoginTicket() {
+        LoginTicket loginTicket = new LoginTicket();
+        loginTicket.setUserId(101);
+        loginTicket.setTicket("abc");
+        loginTicket.setStatus(0);
+        loginTicket.setExpired(new Date(System.currentTimeMillis() + 1000 * 60 * 10));
+        loginTicketMapper.insertLoginTicket(loginTicket);
+    }
+
+    @Test
+    public void testSelectLoginTicket() {
+        LoginTicket loginTicket = loginTicketMapper.selectByTicket("abc");
+        System.out.println(loginTicket);
+    }
+
+    @Test
+    public void testUpdateLoginTicket() {
+        //参数前要加@Param不然会报com.mysql.jdbc.MysqlDataTruncation: Data truncation: Truncated incorrect DOUBLE value:...
+        loginTicketMapper.updateStatus("abc", 1);
+    }
 
 
 }

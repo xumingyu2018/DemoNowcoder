@@ -1,5 +1,7 @@
 server:
   port: 8080
+  servlet:
+    context-path: /community
 
 spring:
   datasource:
@@ -16,6 +18,13 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
+  #  配置邮箱
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: 260602448@qq.com
+    password: mpdckdwkmxyvbjba
+    protocol: smtps
 
 mybatis:
   type-aliases-package: com.xmy.demonowcoder.entities
@@ -26,3 +35,8 @@ mybatis:
     use-generated-keys: true #主键自增
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
+#community域名
+community:
+  path:
+    domain: http://localhost:8080
+    upload: d:/DemoNowcoder/upload

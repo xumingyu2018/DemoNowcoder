@@ -17,13 +17,25 @@ public interface UserMapper {
 
     User selectByEmail(String email);
 
+    /**
+     * 注册用户
+     **/
     int insertUser(User user);
 
-    int updateStatus(@Param("id") int id,@Param("status") int status);
+    /**
+     * 邮件激活
+     **/
+    int updateStatus(@Param("id") int id, @Param("status") int status);
 
-    int updateHeader(@Param("id") int id,@Param("headerUrl") String headerUrl);
+    /**
+     * 上传头像
+     **/
+    int updateHeader(@Param("id") int id, @Param("headerUrl") String headerUrl);
 
-    int updatePassword(@Param("id") int id,@Param("password")String password);
+    /**
+     * 修改密码
+     **/
+    int updatePassword(@Param("id") int id, @Param("password") String password);
     //一定要加@Param("")与mapper.xml中的#{ }匹配
 
 }

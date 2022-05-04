@@ -11,7 +11,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = DemoNowcoderApplication.class)//启用DemoNowcoderApplication类作为配置类
-
 public class LoggerTests {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggerTests.class);

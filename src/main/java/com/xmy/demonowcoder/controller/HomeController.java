@@ -21,7 +21,6 @@ import java.util.Map;
  * @date 2022/4/14
  **/
 @Controller
-@RequestMapping("/community")
 public class HomeController {
     @Autowired
     private DiscussPostService discussPostService;
@@ -29,18 +28,22 @@ public class HomeController {
     @Autowired
     private UserService userService;
 
-    @RequestMapping(value = "/index",method = RequestMethod.GET)
-    public String getIndexPage(Model model, Page page){//传入model参数是因为要返回值给View
+    /***
+     * 主页分页查询功能
+     * @return
+     */
+    @RequestMapping(value = "/index", method = RequestMethod.GET)
+    public String getIndexPage(Model model, Page page) {//传入model参数是因为要返回值给View
         /*方法调用前，springMVC自动实例化Model和Page,并将Page注入Model
-        * 所以，在thymeleaf中可以直接访问Page对象中的数据
-        * */
+         * 所以，在thymeleaf中可以直接访问Page对象中的数据
+         * */
         page.setRows(discussPostService.findDiscussPostRows(0));
         page.setPath("/index");
 
-        List<DiscussPost> list=discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit());
+        List<DiscussPost> list = discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit());
         //List<DiscussPost> list=discussPostService.findDiscussPosts(0,0,10);//查寻所有的帖子
         //将查询的post帖子和user用户名拼接后放入map中,最后把全部map放入新的List中,因为UserId是外键，需要显示的是对应的名字即可
-        List<Map<String,Object>> discussPost =new ArrayList<>();
+        List<Map<String, Object>> discussPost = new ArrayList<>();
 
         if (list!=null){
             for(DiscussPost post:list){
@@ -48,7 +51,7 @@ public class HomeController {
                 //将查询到的帖子放入map
                 map.put("post",post);
                 //将发布帖子对应的用户id作为参数
-                User user = userService.findUser(post.getUserId());
+                User user = userService.findUserById(post.getUserId());
                 //将发帖子的所有用户放入map
                 map.put("user",user);
                 //将组合的map放入List<>
@@ -57,9 +60,5 @@ public class HomeController {
         }
         model.addAttribute("discussPosts",discussPost);
         return "/index";
-
-
-
-
     }
 }

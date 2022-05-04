@@ -1,15 +1,21 @@
 package com.xmy.demonowcoder.controller;
 
 import com.xmy.demonowcoder.Service.TestService;
+import com.xmy.demonowcoder.util.CommunityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Demo小示例
+ *
  * @author xumingyu
  * @date 2022/4/10
  **/
@@ -80,12 +86,66 @@ public class Controller {
 
     //响应JSON字符串
     //Java对象-->JSON字符串-->JS对象
-    @RequestMapping(value = "/json",method = RequestMethod.GET)
+    @RequestMapping(value = "/json", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String,Object> getJson(){
+    public Map<String, Object> getJson() {
         Map<String, Object> map = new HashMap<>();
-        map.put("name","王五");
-        map.put("age","20");
+        map.put("name", "王五");
+        map.put("age", "20");
         return map;
     }
+
+    /**
+     * Cookie示例(获取Cookie时@CookieValue有点问题！！)
+     */
+    @RequestMapping(value = "/cookie/set", method = RequestMethod.GET)
+    @ResponseBody
+    public String setCookie(HttpServletResponse response) {
+        //cookie存的必须是字符串
+        Cookie cookie = new Cookie("code", CommunityUtil.generateUUID());
+        cookie.setPath("/Community/test");
+        cookie.setMaxAge(60 * 10);
+        response.addCookie(cookie);
+
+        return "set cookie!";
+    }
+
+    @RequestMapping(value = "/cookie/get", method = RequestMethod.GET)
+    @ResponseBody
+    public String getCookie(@CookieValue("code") String code) {
+        System.out.println(code);
+        return "get cookie!";
+    }
+
+    /**
+     * Session示例
+     */
+    @RequestMapping(value = "/session/set", method = RequestMethod.GET)
+    @ResponseBody
+    public String setSession(HttpSession session) {
+        session.setAttribute("id", 1);
+        session.setAttribute("name", "xmy");
+        return "set session!";
+    }
+
+    @RequestMapping(value = "/session/get", method = RequestMethod.GET)
+    @ResponseBody
+    public String getSession(HttpSession session) {
+        System.out.println(session.getAttribute("id"));
+        System.out.println(session.getAttribute("name"));
+        return "get session!";
+    }
+
+    /**
+     * Ajax异步请求示例
+     */
+    @RequestMapping(value = "/ajax", method = RequestMethod.POST)
+    @ResponseBody
+    public String testAjax(String name, int age) {
+        System.out.println(name);
+        System.out.println(age);
+        return CommunityUtil.getJSONString(200, "操作成功！");
+    }
+
+
 }
