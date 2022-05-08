@@ -1,4 +1,4 @@
-package com.xmy.demonowcoder.Service;
+package com.xmy.demonowcoder.service;
 
 import com.xmy.demonowcoder.dao.LoginTicketMapper;
 import com.xmy.demonowcoder.dao.UserMapper;
@@ -263,5 +263,9 @@ public class UserService implements CommuityConstant {
         map.put("user", user);
 
         return map;
+    }
+
+    public User findUserByName(String username) {
+        return userMapper.selectByName(username);
     }
 }

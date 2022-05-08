@@ -1,4 +1,4 @@
-package com.xmy.demonowcoder.Service;
+package com.xmy.demonowcoder.service;
 
 import com.xmy.demonowcoder.dao.DiscussPostMapper;
 import com.xmy.demonowcoder.entities.DiscussPost;
@@ -22,6 +22,9 @@ public class DiscussPostService {
     @Autowired
     private SensitiveFilter sensitiveFilter;
 
+    /**
+     * 主页分页查询帖子
+     **/
     public List<DiscussPost> findDiscussPosts(int userId, int offset, int limit) {
         return discussPostMapper.selectDiscussPosts(userId, offset, limit);
     }
@@ -32,7 +35,6 @@ public class DiscussPostService {
 
     /**
      * 发布帖子
-     *
      * @param post
      * @return
      */
@@ -53,5 +55,9 @@ public class DiscussPostService {
 
     public DiscussPost findDiscussPostById(int id) {
         return discussPostMapper.selectDiscussPostById(id);
+    }
+
+    public int updateCommentCount(int id, int commentCount) {
+        return discussPostMapper.updateCommentCount(id, commentCount);
     }
 }

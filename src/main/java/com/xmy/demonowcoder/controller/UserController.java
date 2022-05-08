@@ -1,8 +1,8 @@
 package com.xmy.demonowcoder.controller;
 
-import com.xmy.demonowcoder.Service.UserService;
 import com.xmy.demonowcoder.annotation.LoginRequired;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import com.xmy.demonowcoder.util.MailClient;

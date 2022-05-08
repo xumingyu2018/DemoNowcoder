@@ -1,6 +1,6 @@
 package com.xmy.demonowcoder;
 
-import com.xmy.demonowcoder.Service.TestService;
+import com.xmy.demonowcoder.service.TestService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,8 +1,8 @@
 package com.xmy.demonowcoder.controller.interceptor;
 
-import com.xmy.demonowcoder.Service.UserService;
 import com.xmy.demonowcoder.entities.LoginTicket;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CookieUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;

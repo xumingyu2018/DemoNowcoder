@@ -1,4 +1,4 @@
-package com.xmy.demonowcoder.Service;
+package com.xmy.demonowcoder.service;
 
 import com.xmy.demonowcoder.dao.TestDao;
 import com.xmy.demonowcoder.dao.UserMapper;

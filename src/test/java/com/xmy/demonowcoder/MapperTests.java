@@ -1,11 +1,7 @@
 package com.xmy.demonowcoder;
 
-import com.xmy.demonowcoder.dao.DiscussPostMapper;
-import com.xmy.demonowcoder.dao.LoginTicketMapper;
-import com.xmy.demonowcoder.dao.UserMapper;
-import com.xmy.demonowcoder.entities.DiscussPost;
-import com.xmy.demonowcoder.entities.LoginTicket;
-import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.dao.*;
+import com.xmy.demonowcoder.entities.*;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -29,6 +26,12 @@ class MapperTests {//ApplicationContextAware实现spring容器
 
     @Autowired
     private LoginTicketMapper loginTicketMapper;
+
+    @Autowired
+    private CommentMapper commentMapper;
+
+    @Autowired
+    private MessageMapper messageMapper;
 
     @Test
     public void testSelectUser() {
@@ -95,6 +98,68 @@ class MapperTests {//ApplicationContextAware实现spring容器
     public void testUpdateLoginTicket() {
         //参数前要加@Param不然会报com.mysql.jdbc.MysqlDataTruncation: Data truncation: Truncated incorrect DOUBLE value:...
         loginTicketMapper.updateStatus("abc", 1);
+    }
+
+    @Test
+    public void testSelectComment() {
+        List<Comment> comments = commentMapper.selectCommentsByEntity(1, 103, 0, 5);
+        System.out.println(comments);
+
+        int count = commentMapper.selectCountByEntity(1, 103);
+        System.out.println(count);
+    }
+
+    @Test
+    public void testInsertComment() {
+        Comment comment = new Comment();
+        comment.setEntityType(1);
+        comment.setEntityId(111);
+        comment.setTargetId(0);
+        comment.setContent("这是一个插入评论测试");
+        comment.setStatus(0);
+        comment.setCreateTime(new Date());
+        commentMapper.insertComment(comment);
+    }
+
+    @Test
+    public void testSelectMessage() {
+        List<Message> list = messageMapper.selectConversations(107, 0, 10);
+        for (Message message : list) {
+            System.out.println(message);
+        }
+
+        int count = messageMapper.selectConversationCount(107);
+        System.out.println(count);
+
+        list = messageMapper.selectLetters("104_107", 0, 10);
+        for (Message message : list) {
+            System.out.println(message);
+        }
+
+        int count1 = messageMapper.selectLetterCount("104_107");
+        System.out.println(count1);
+
+        int unreadCount = messageMapper.selectLetterUnreadCount(104, "104_107");
+        System.out.println(unreadCount);
+    }
+
+    @Test
+    public void testInsertMessage() {
+        Message message = new Message();
+        message.setFromId(107);
+        message.setToId(109);
+        message.setConversationId("107_109");
+        message.setContent("你好tom,我是xmy");
+        message.setCreateTime(new Date());
+        messageMapper.insertMessage(message);
+    }
+
+    @Test
+    public void testUpdateMessageStatus() {
+        ArrayList<Integer> ids = new ArrayList<>();
+        ids.add(12);
+        ids.add(11);
+        messageMapper.updateStatus(ids, 1);
     }
 
 

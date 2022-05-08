@@ -10,7 +10,7 @@ public class Page {
     //当前页面
     private int current=1;
     //显示上限
-    private int limit=6;
+    private int limit = 6;
     //数据总数(用于计算总页数)
     private int rows;
     //查询路径(用于复用分页链接)
@@ -20,9 +20,14 @@ public class Page {
         return current;
     }
 
+    /**
+     * 设置当前
+     *
+     * @param current
+     */
     public void setCurrent(int current) {
         //要作输入判断
-        if (current>=1){
+        if (current >= 1) {
             this.current = current;
         }
     }
@@ -31,8 +36,13 @@ public class Page {
         return limit;
     }
 
+    /**
+     * 设置一页最多几条
+     *
+     * @param limit
+     */
     public void setLimit(int limit) {
-        if (limit>=1&&limit<=100){
+        if (limit >= 1 && limit <= 100) {
             this.limit = limit;
         }
     }
@@ -41,8 +51,13 @@ public class Page {
         return rows;
     }
 
+    /**
+     * 设置总条数
+     *
+     * @param rows
+     */
     public void setRows(int rows) {
-        if (rows>=0){
+        if (rows >= 0) {
             this.rows = rows;
         }
     }

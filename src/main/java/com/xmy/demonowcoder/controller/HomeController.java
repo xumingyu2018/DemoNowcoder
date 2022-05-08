@@ -1,10 +1,10 @@
 package com.xmy.demonowcoder.controller;
 
-import com.xmy.demonowcoder.Service.DiscussPostService;
-import com.xmy.demonowcoder.Service.UserService;
 import com.xmy.demonowcoder.entities.DiscussPost;
 import com.xmy.demonowcoder.entities.Page;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.service.DiscussPostService;
+import com.xmy.demonowcoder.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -53,12 +53,17 @@ public class HomeController {
                 //将发布帖子对应的用户id作为参数
                 User user = userService.findUserById(post.getUserId());
                 //将发帖子的所有用户放入map
-                map.put("user",user);
+                map.put("user", user);
                 //将组合的map放入List<>
                 discussPost.add(map);
             }
         }
-        model.addAttribute("discussPosts",discussPost);
+        model.addAttribute("discussPosts", discussPost);
         return "/index";
+    }
+
+    @RequestMapping(value = "error", method = RequestMethod.GET)
+    public String getErrorPage() {
+        return "/error/500";
     }
 }

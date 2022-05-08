@@ -1,8 +1,8 @@
 package com.xmy.demonowcoder.controller;
 
 import com.google.code.kaptcha.Producer;
-import com.xmy.demonowcoder.Service.UserService;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CommuityConstant;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -31,6 +31,7 @@ import java.util.Map;
  * @author xumingyu
  * @date 2022/4/20
  **/
+
 @Controller
 public class LoginController implements CommuityConstant {
 
@@ -163,6 +164,5 @@ public class LoginController implements CommuityConstant {
         userService.logout(ticket);
         return "redirect:/login";
     }
-
 
 }

@@ -1,6 +1,6 @@
 package com.xmy.demonowcoder.controller;
 
-import com.xmy.demonowcoder.Service.TestService;
+import com.xmy.demonowcoder.service.TestService;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
