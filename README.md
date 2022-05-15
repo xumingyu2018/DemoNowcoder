@@ -1,4 +1,4 @@
-# 工程简介
+# 仿牛客网项目练习
 
-# 延伸阅读
+# 来源：https://www.nowcoder.com/courses/cover/live/246 用于个人Java练习！
 
