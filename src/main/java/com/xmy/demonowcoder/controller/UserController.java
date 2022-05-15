@@ -2,7 +2,10 @@ package com.xmy.demonowcoder.controller;
 
 import com.xmy.demonowcoder.annotation.LoginRequired;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.service.FollowService;
+import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
+import com.xmy.demonowcoder.util.CommuityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import com.xmy.demonowcoder.util.MailClient;
@@ -35,7 +38,7 @@ import java.util.Map;
  **/
 @Controller
 @RequestMapping("/user")
-public class UserController {
+public class UserController implements CommuityConstant {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
@@ -60,6 +63,12 @@ public class UserController {
 
     @Autowired
     private MailClient mailClient;
+
+    @Autowired
+    private LikeService likeService;
+
+    @Autowired
+    private FollowService followService;
 
     @LoginRequired//自定义注解
     @RequestMapping(value = "/setting", method = RequestMethod.GET)
@@ -215,5 +224,36 @@ public class UserController {
             model.addAttribute("passwordMsg", map.get("passwordMsg"));
             return "/site/forget";
         }
+    }
+
+    /**
+     * 个人主页
+     */
+    @RequestMapping(value = "/profile/{userId}", method = RequestMethod.GET)
+    public String getProfilePage(@PathVariable("userId") int userId, Model model) {
+        User user = userService.findUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("该用户不存在！");
+        }
+        model.addAttribute("user", user);
+
+        // 点赞数量
+        int likeCount = likeService.findUserLikeCount(userId);
+        model.addAttribute("likeCount", likeCount);
+
+        // 关注数量(这里只考虑关注用户类型的情况)
+        long followeeCount = followService.findFolloweeCount(userId, ENTITY_TYPE_USER);
+        model.addAttribute("followeeCount", followeeCount);
+        // 粉丝数量
+        long followerCount = followService.findFollowerCount(ENTITY_TYPE_USER, userId);
+        model.addAttribute("followerCount", followerCount);
+        // 是否已关注 (必须是用户登录的情况)
+        boolean hasFollowed = false;
+        if (hostHolder.getUser() != null) {
+            hasFollowed = followService.hasFollowed(hostHolder.getUser().getId(), ENTITY_TYPE_USER, userId);
+        }
+        model.addAttribute("hasFollowed", hasFollowed);
+
+        return "/site/profile";
     }
 }

@@ -128,7 +128,7 @@
                     <li class="media pb-3 pt-3 mb-3 border-bottom position-relative" th:each="map:${conversations}">
                         <span class="badge badge-danger" th:if="${map.unreadCount!=0}"
                               th:text="${map.unreadCount}">3</span>
-                        <a href="profile.html">
+                        <a th:href="@{|/user/profile/${map.target.id}|}">
                             <img alt="用户头像" class="mr-4 rounded-circle user-header" th:src="${map.target.headerUrl}">
                         </a>
                         <div class="media-body">

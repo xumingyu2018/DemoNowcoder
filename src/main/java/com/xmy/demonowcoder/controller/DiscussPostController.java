@@ -6,6 +6,7 @@ import com.xmy.demonowcoder.entities.Page;
 import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.CommentService;
 import com.xmy.demonowcoder.service.DiscussPostService;
+import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CommuityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
@@ -36,6 +37,8 @@ public class DiscussPostController implements CommuityConstant {
     private HostHolder hostHolder;
     @Autowired
     private CommentService commentService;
+    @Autowired
+    private LikeService likeService;
 
     /**
      * 发表评论
@@ -46,6 +49,7 @@ public class DiscussPostController implements CommuityConstant {
      */
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ResponseBody
+    // 异步请求要加@ResponseBody,且不要在Controller层用Model
     public String addDiscussPost(String title, String content) {
         //获取当前登录的用户
         User user = hostHolder.getUser();
@@ -74,13 +78,21 @@ public class DiscussPostController implements CommuityConstant {
      */
     @RequestMapping(value = "/detail/{discussPostId}", method = RequestMethod.GET)
     public String getDiscusspost(@PathVariable("discussPostId") int discussPostId, Model model, Page page) {
-        //通过前端传来的Id查询帖子
+        // 通过前端传来的Id查询帖子
         DiscussPost post = discussPostService.findDiscussPostById(discussPostId);
         model.addAttribute("post", post);
 
-        //查询发帖人的头像及用户名
+        // 查询作者的头像及用户名
         User user = userService.findUserById(post.getUserId());
         model.addAttribute("user", user);
+
+        // 点赞数量
+        long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, discussPostId);
+        model.addAttribute("likeCount", likeCount);
+
+        // 点赞状态 (没登录就显示0)
+        int likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_POST, discussPostId);
+        model.addAttribute("likeStatus", likeStatus);
 
         //设置评论分页信息
         page.setLimit(5);
@@ -104,6 +116,13 @@ public class DiscussPostController implements CommuityConstant {
                 // 作者(由comment表中 entity = 1 查user表)
                 commentVo.put("user", userService.findUserById(comment.getUserId()));
 
+                // 点赞数量
+                likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, comment.getId());
+                commentVo.put("likeCount", likeCount);
+                // 点赞状态 (没登录就显示0)
+                likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, comment.getId());
+                commentVo.put("likeStatus", likeStatus);
+
                 // 回复列表集合（每一条评论的所有回复,不分页）
                 List<Comment> replyList = commentService.findCommentsByEntity(ENTITY_TYPE_COMMENT, comment.getId(), 0, Integer.MAX_VALUE);
 
@@ -120,6 +139,14 @@ public class DiscussPostController implements CommuityConstant {
                         // 回复目标 (有2种：1.直接回复 2.追加回复)
                         User target = reply.getTargetId() == 0 ? null : userService.findUserById(reply.getTargetId());
                         replyVo.put("target", target);
+
+                        // 点赞数量
+                        likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, reply.getId());
+                        replyVo.put("likeCount", likeCount);
+                        // 点赞状态 (没登录就显示0)
+                        likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, reply.getId());
+                        replyVo.put("likeStatus", likeStatus);
+
                         // 将每一个回复Map放在回复List中
                         replyVoList.add(replyVo);
                     }

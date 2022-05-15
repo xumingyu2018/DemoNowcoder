@@ -4,7 +4,9 @@ import com.xmy.demonowcoder.entities.DiscussPost;
 import com.xmy.demonowcoder.entities.Page;
 import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.DiscussPostService;
+import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
+import com.xmy.demonowcoder.util.CommuityConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,12 +23,15 @@ import java.util.Map;
  * @date 2022/4/14
  **/
 @Controller
-public class HomeController {
+public class HomeController implements CommuityConstant {
     @Autowired
     private DiscussPostService discussPostService;
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private LikeService likeService;
 
     /***
      * 主页分页查询功能
@@ -46,14 +51,18 @@ public class HomeController {
         List<Map<String, Object>> discussPost = new ArrayList<>();
 
         if (list!=null){
-            for(DiscussPost post:list){
+            for(DiscussPost post:list) {
                 HashMap<String, Object> map = new HashMap<>();
                 //将查询到的帖子放入map
-                map.put("post",post);
+                map.put("post", post);
                 //将发布帖子对应的用户id作为参数
                 User user = userService.findUserById(post.getUserId());
                 //将发帖子的所有用户放入map
                 map.put("user", user);
+
+                long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, post.getId());
+                map.put("likeCount", likeCount);
+
                 //将组合的map放入List<>
                 discussPost.add(map);
             }

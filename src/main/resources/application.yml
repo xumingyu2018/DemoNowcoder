@@ -25,6 +25,11 @@ spring:
     username: 260602448@qq.com
     password: mpdckdwkmxyvbjba
     protocol: smtps
+  #RedisProperties
+  redis:
+    database: 11
+    host: localhost
+    port: 6379
 
 mybatis:
   type-aliases-package: com.xmy.demonowcoder.entities
@@ -40,3 +45,4 @@ community:
   path:
     domain: http://localhost:8080
     upload: d:/DemoNowcoder/upload
+
