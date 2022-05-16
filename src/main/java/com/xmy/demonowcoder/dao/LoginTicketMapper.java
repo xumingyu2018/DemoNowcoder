@@ -10,6 +10,8 @@ import org.apache.ibatis.annotations.*;
  * @date 2022/4/25
  **/
 @Mapper
+@Deprecated
+/** 废弃loginTicket表，改用redis优化存储 **/
 public interface LoginTicketMapper {
 
     @Insert({
