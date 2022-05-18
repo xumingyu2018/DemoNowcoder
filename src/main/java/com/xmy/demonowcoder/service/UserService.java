@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2022/4/14
  **/
 @Service
-public class UserService implements CommuityConstant {
+public class UserService implements CommunityConstant {
 
     @Autowired
     private UserMapper userMapper;

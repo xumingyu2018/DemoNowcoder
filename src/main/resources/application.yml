@@ -30,6 +30,15 @@ spring:
     database: 11
     host: localhost
     port: 6379
+  #KafkaProperties
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-consumer-group
+      # consumer偏移量记录下来提交
+      enable-auto-commit: true
+      # 自动提交频率
+      auto-commit-interval: 3000
 
 mybatis:
   type-aliases-package: com.xmy.demonowcoder.entities

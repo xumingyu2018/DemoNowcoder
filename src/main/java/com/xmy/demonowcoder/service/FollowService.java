@@ -1,7 +1,7 @@
 package com.xmy.demonowcoder.service;
 
 import com.xmy.demonowcoder.entities.User;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.RedisKeyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -17,7 +17,7 @@ import java.util.*;
  * @date 2022/5/10
  **/
 @Service
-public class FollowService implements CommuityConstant {
+public class FollowService implements CommunityConstant {
 
     @Autowired
     private RedisTemplate redisTemplate;

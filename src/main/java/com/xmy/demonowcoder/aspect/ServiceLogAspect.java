@@ -15,6 +15,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
+ * Aop统一记录日志
+ *
  * @author xumingyu
  * @date 2022/5/7
  **/
@@ -33,6 +35,9 @@ public class ServiceLogAspect {
         // 用户ip[1.2.3.4],在[xxx],访问了[com.nowcoder.community.service.xxx()].
         // 通过RequestContextHolder获取request
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return;
+        }
         HttpServletRequest request = attributes.getRequest();
         // 通过request.getRemoteHost获取当前用户ip
         String ip = request.getRemoteHost();

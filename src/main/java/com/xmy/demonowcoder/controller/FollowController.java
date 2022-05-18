@@ -1,10 +1,12 @@
 package com.xmy.demonowcoder.controller;
 
+import com.xmy.demonowcoder.entities.Event;
 import com.xmy.demonowcoder.entities.Page;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.event.EventProducer;
 import com.xmy.demonowcoder.service.FollowService;
 import com.xmy.demonowcoder.service.UserService;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,7 @@ import java.util.Map;
  * @date 2022/5/10
  **/
 @Controller
-public class FollowController implements CommuityConstant {
+public class FollowController implements CommunityConstant {
 
     @Autowired
     private FollowService followService;
@@ -31,6 +33,8 @@ public class FollowController implements CommuityConstant {
     private HostHolder hostHolder;
     @Autowired
     private UserService userService;
+    @Autowired
+    private EventProducer eventProducer;
 
     /**
      * 关注
@@ -39,6 +43,22 @@ public class FollowController implements CommuityConstant {
     @ResponseBody // 关注是异步请求
     public String follow(int entityType, int entityId) {
         followService.follow(hostHolder.getUser().getId(), entityType, entityId);
+
+        /**
+         * 触发关注事件
+         * 关注完后，调用Kafka生产者，发送系统通知
+         */
+        Event event = new Event()
+                .setTopic(TOPIC_FOLLOW)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(entityType)
+                .setEntityId(entityId)
+                .setEntityUserId(entityId);
+        // 用户关注实体的id就是被关注的用户id->EntityId=EntityUserId
+
+        eventProducer.fireMessage(event);
+
+
         return CommunityUtil.getJSONString(0, "已关注");
     }
 

@@ -6,7 +6,6 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  * 阻塞队列Demo
- *
  * @author xumingyu
  * @date 2022/5/16
  **/
@@ -21,7 +20,6 @@ public class BlockingQueueTests {
 
     }
 }
-
 /**
  * 生产者
  **/

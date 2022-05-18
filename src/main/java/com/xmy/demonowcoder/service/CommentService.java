@@ -2,7 +2,7 @@ package com.xmy.demonowcoder.service;
 
 import com.xmy.demonowcoder.dao.CommentMapper;
 import com.xmy.demonowcoder.entities.Comment;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.SensitiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,7 @@ import java.util.List;
  * @date 2022/5/4
  **/
 @Service
-public class CommentService implements CommuityConstant {
+public class CommentService implements CommunityConstant {
 
     @Autowired
     private CommentMapper commentMapper;
@@ -66,6 +66,10 @@ public class CommentService implements CommuityConstant {
         }
 
         return rows;
+    }
+
+    public Comment findCommentById(int id) {
+        return commentMapper.selectComment(id);
     }
 
 }

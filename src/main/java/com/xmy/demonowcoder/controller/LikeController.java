@@ -1,7 +1,10 @@
 package com.xmy.demonowcoder.controller;
 
+import com.xmy.demonowcoder.entities.Event;
 import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.event.EventProducer;
 import com.xmy.demonowcoder.service.LikeService;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +21,18 @@ import java.util.Map;
  * @date 2022/5/9
  **/
 @Controller
-public class LikeController {
+public class LikeController implements CommunityConstant {
 
     @Autowired
     private HostHolder hostHolder;
     @Autowired
     private LikeService likeService;
+    @Autowired
+    private EventProducer eventProducer;
 
     @RequestMapping(value = "/like", method = RequestMethod.POST)
     @ResponseBody
-    public String like(int entityType, int entityId, int entityUserId) {
+    public String like(int entityType, int entityId, int entityUserId, int postId) {
         User user = hostHolder.getUser();
         // 点赞
         likeService.like(user.getId(), entityType, entityId, entityUserId);
@@ -40,6 +45,23 @@ public class LikeController {
         Map<String, Object> map = new HashMap<>();
         map.put("likeCount", likeCount);
         map.put("likeStatus", likeStatus);
+
+        /**
+         * 触发点赞事件
+         * 只有点赞完后，才会调用Kafka生产者，发送系统通知，取消点赞不会调用事件
+         */
+        if (likeStatus == 1) {
+            Event event = new Event()
+                    .setTopic(TOPIC_LIKE)
+                    .setEntityId(entityId)
+                    .setEntityType(entityType)
+                    .setUserId(user.getId())
+                    .setEntityUserId(entityUserId)
+                    .setData("postId", postId);
+            // data里面存postId是因为点击查看后链接到具体帖子的页面
+            eventProducer.fireMessage(event);
+        }
+
 
         return CommunityUtil.getJSONString(0, null, map);
     }
