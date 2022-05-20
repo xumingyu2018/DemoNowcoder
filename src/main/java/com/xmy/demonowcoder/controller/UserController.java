@@ -5,7 +5,7 @@ import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.FollowService;
 import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import com.xmy.demonowcoder.util.MailClient;
@@ -38,7 +38,7 @@ import java.util.Map;
  **/
 @Controller
 @RequestMapping("/user")
-public class UserController implements CommuityConstant {
+public class UserController implements CommunityConstant {
 
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 

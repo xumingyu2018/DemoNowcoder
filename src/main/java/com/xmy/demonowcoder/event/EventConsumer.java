@@ -37,8 +37,9 @@ public class EventConsumer implements CommunityConstant {
             logger.error("消息的内容为空!");
             return;
         }
-        // 将event字符串格式转化为Object对象
+        // 将record.value字符串格式转化为Event对象
         Event event = JSONObject.parseObject(record.value().toString(), Event.class);
+        // 注意：event若data=null,是fastjson依赖版本的问题
         if (event == null) {
             logger.error("消息格式错误!");
             return;

@@ -8,7 +8,7 @@ import com.xmy.demonowcoder.service.CommentService;
 import com.xmy.demonowcoder.service.DiscussPostService;
 import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +27,7 @@ import java.util.*;
  **/
 @Controller
 @RequestMapping(value = "/discuss")
-public class DiscussPostController implements CommuityConstant {
+public class DiscussPostController implements CommunityConstant {
 
     @Autowired
     private DiscussPostService discussPostService;

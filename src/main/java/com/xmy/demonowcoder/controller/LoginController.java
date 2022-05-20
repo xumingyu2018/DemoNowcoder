@@ -3,7 +3,7 @@ package com.xmy.demonowcoder.controller;
 import com.google.code.kaptcha.Producer;
 import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.UserService;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.RedisKeyUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  **/
 
 @Controller
-public class LoginController implements CommuityConstant {
+public class LoginController implements CommunityConstant {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
 

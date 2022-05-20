@@ -6,7 +6,7 @@ import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.DiscussPostService;
 import com.xmy.demonowcoder.service.LikeService;
 import com.xmy.demonowcoder.service.UserService;
-import com.xmy.demonowcoder.util.CommuityConstant;
+import com.xmy.demonowcoder.util.CommunityConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,7 +23,7 @@ import java.util.Map;
  * @date 2022/4/14
  **/
 @Controller
-public class HomeController implements CommuityConstant {
+public class HomeController implements CommunityConstant {
     @Autowired
     private DiscussPostService discussPostService;
 

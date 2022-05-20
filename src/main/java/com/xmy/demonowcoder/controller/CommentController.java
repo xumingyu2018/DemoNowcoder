@@ -51,7 +51,6 @@ public class CommentController implements CommunityConstant {
                 .setEntityType(comment.getEntityType())
                 .setUserId(hostHolder.getUser().getId())
                 .setData("postId", discussPostId);
-
         /**
          * event.setEntityUserId要分情况设置被发起事件的用户id
          * 1.评论的是帖子，被发起事件（评论）的用户->该帖子发布人id
