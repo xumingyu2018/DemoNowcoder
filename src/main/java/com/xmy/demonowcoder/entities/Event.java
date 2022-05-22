@@ -5,6 +5,7 @@ import java.util.Map;
 
 /**
  * Kafka消息队列事件（评论、点赞、关注事件）
+ * 发布帖子时存储进Elasticsearch事件
  *
  * @author xumingyu
  * @date 2022/5/17

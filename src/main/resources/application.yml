@@ -39,6 +39,12 @@ spring:
       enable-auto-commit: true
       # 自动提交频率
       auto-commit-interval: 3000
+  #ElasticsearchPropertier--Springboot版本2.1.5 9300:TCP通信
+  data:
+    elasticsearch:
+      cluster-name: demonowcoder
+      cluster-nodes: 127.0.0.1:9300
+
 
 mybatis:
   type-aliases-package: com.xmy.demonowcoder.entities

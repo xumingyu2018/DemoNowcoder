@@ -1,9 +1,7 @@
 package com.xmy.demonowcoder.controller;
 
-import com.xmy.demonowcoder.entities.Comment;
-import com.xmy.demonowcoder.entities.DiscussPost;
-import com.xmy.demonowcoder.entities.Page;
-import com.xmy.demonowcoder.entities.User;
+import com.xmy.demonowcoder.entities.*;
+import com.xmy.demonowcoder.event.EventProducer;
 import com.xmy.demonowcoder.service.CommentService;
 import com.xmy.demonowcoder.service.DiscussPostService;
 import com.xmy.demonowcoder.service.LikeService;
@@ -39,6 +37,8 @@ public class DiscussPostController implements CommunityConstant {
     private CommentService commentService;
     @Autowired
     private LikeService likeService;
+    @Autowired
+    private EventProducer eventProducer;
 
     /**
      * 发表评论
@@ -51,7 +51,7 @@ public class DiscussPostController implements CommunityConstant {
     @ResponseBody
     // 异步请求要加@ResponseBody,且不要在Controller层用Model
     public String addDiscussPost(String title, String content) {
-        //获取当前登录的用户
+        // 获取当前登录的用户
         User user = hostHolder.getUser();
         if (user == null) {
             return CommunityUtil.getJSONString(0, "你还没有登录哦！");
@@ -61,10 +61,21 @@ public class DiscussPostController implements CommunityConstant {
         post.setTitle(title);
         post.setContent(content);
         post.setCreateTime(new Date());
-        //业务处理，将用户给的title，content进行处理并添加进数据库
+        // 业务处理，将用户给的title，content进行处理并添加进数据库
         discussPostService.addDiscussPost(post);
 
-        //返回Json格式字符串,报错的情况将来统一处理
+        /**
+         * 发布帖子时，将帖子异步提交到Elasticsearch服务器
+         * 通过Kafka消息队列去提交，将新发布的帖子存入Elasticsearch
+         **/
+        Event event = new Event()
+                .setTopic(TOPIC_PUBILISH)
+                .setUserId(user.getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(post.getId());
+        eventProducer.fireMessage(event);
+
+        // 返回Json格式字符串,报错的情况将来统一处理
         return CommunityUtil.getJSONString(0, "发布成功！");
     }
 

@@ -1,8 +1,11 @@
 package com.xmy.demonowcoder.event;
 
 import com.alibaba.fastjson.JSONObject;
+import com.xmy.demonowcoder.entities.DiscussPost;
 import com.xmy.demonowcoder.entities.Event;
 import com.xmy.demonowcoder.entities.Message;
+import com.xmy.demonowcoder.service.DiscussPostService;
+import com.xmy.demonowcoder.service.ElasticsearchService;
 import com.xmy.demonowcoder.service.MessageService;
 import com.xmy.demonowcoder.util.CommunityConstant;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -30,6 +33,12 @@ public class EventConsumer implements CommunityConstant {
 
     @Autowired
     private MessageService messageService;
+
+    @Autowired
+    private DiscussPostService discussPostService;
+
+    @Autowired
+    private ElasticsearchService elasticsearchService;
 
     @KafkaListener(topics = {TOPIC_COMMENT, TOPIC_LIKE, TOPIC_FOLLOW})
     public void handleCommentMessage(ConsumerRecord record) {
@@ -69,6 +78,30 @@ public class EventConsumer implements CommunityConstant {
         // 将content(map类型)转化成字符串类型封装进message
         message.setContent(JSONObject.toJSONString(content));
         messageService.addMessage(message);
+
+    }
+
+    /**
+     * 消费帖子发布事件，将新增的帖子和添加评论后帖子评论数通过消息队列的方式save进Elastisearch服务器中
+     *
+     * @param record
+     */
+    @KafkaListener(topics = {TOPIC_PUBILISH})
+    public void handleDiscussPostMessage(ConsumerRecord record) {
+        if (record == null || record.value() == null) {
+            logger.error("消息的内容为空!");
+            return;
+        }
+        // 将record.value字符串格式转化为Event对象
+        Event event = JSONObject.parseObject(record.value().toString(), Event.class);
+        // 注意：event若data=null,是fastjson依赖版本的问题
+        if (event == null) {
+            logger.error("消息格式错误!");
+            return;
+        }
+
+        DiscussPost post = discussPostService.findDiscussPostById(event.getEntityId());
+        elasticsearchService.saveDiscussPost(post);
 
     }
 }
