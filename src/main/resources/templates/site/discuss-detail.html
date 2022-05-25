@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" xmlns:th="http://www.thymeleaf.org">
 <head>
-	<meta charset="utf-8">
-	<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-	<link href="https://static.nowcoder.com/images/logo_87_87.png" rel="icon"/>
-	<link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-		  rel="stylesheet">
-	<link rel="stylesheet" th:href="@{/css/global.css}"/>
-	<link rel="stylesheet" th:href="@{/css/discuss-detail.css}"/>
-	<title>牛客网-帖子详情</title>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <link href="https://static.nowcoder.com/images/logo_87_87.png" rel="icon"/>
+    <link crossorigin="anonymous" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/global.css}"/>
+    <link rel="stylesheet" th:href="@{/css/discuss-detail.css}"/>
+    <title>牛客网-帖子详情</title>
 </head>
 <body>
 <div class="nk-container">
@@ -72,11 +72,19 @@
 				<h6 class="mb-4">
 					<img src="http://static.nowcoder.com/images/img/icons/ico-discuss.png"/>
 					<span th:utext="${post.getTitle()}">备战春招，面试刷题跟他复习，一个月全搞定！</span>
-					<div class="float-right">
-						<button type="button" class="btn btn-danger btn-sm">置顶</button>
-						<button type="button" class="btn btn-danger btn-sm">加精</button>
-						<button type="button" class="btn btn-danger btn-sm">删除</button>
-					</div>
+                    <div class="float-right">
+                        <input id="postId" th:value="${post.id}" type="hidden">
+                        <button class="btn btn-danger btn-sm" id="topBtn" sec:authorize="hasAnyAuthority('moderator')"
+                                th:text="${post.type==1?'取消置顶':'置顶'}" type="button">置顶
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="wonderfulBtn"
+                                sec:authorize="hasAnyAuthority('moderator')"
+                                th:text="${post.status==1?'取消加精':'加精'}" type="button">加精
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="deleteBtn" sec:authorize="hasAnyAuthority('admin')"
+                                th:disabled="${post.status==2}" type="button">删除
+                        </button>
+                    </div>
 				</h6>
 				<!-- 作者 -->
 				<div class="media pb-3 border-bottom">

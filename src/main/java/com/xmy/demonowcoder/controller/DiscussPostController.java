@@ -178,4 +178,66 @@ public class DiscussPostController implements CommunityConstant {
 
         return "/site/discuss-detail";
     }
+
+    // 置顶、取消置顶
+    @RequestMapping(value = "/top", method = RequestMethod.POST)
+    @ResponseBody
+    public String setTop(int id) {
+        DiscussPost post = discussPostService.findDiscussPostById(id);
+        // 获取置顶状态，1为置顶，0为正常状态,1^1=0 0^1=1
+        int type = post.getType() ^ 1;
+        discussPostService.updateType(id, type);
+        // 返回结果给JS异步请求
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("type", type);
+
+        // 触发事件，修改Elasticsearch中的帖子type
+        Event event = new Event()
+                .setTopic(TOPIC_PUBILISH)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireMessage(event);
+
+        return CommunityUtil.getJSONString(0, null, map);
+    }
+
+    // 加精、取消加精
+    @RequestMapping(value = "/wonderful", method = RequestMethod.POST)
+    @ResponseBody
+    public String setWonderful(int id) {
+        DiscussPost post = discussPostService.findDiscussPostById(id);
+        int status = post.getStatus() ^ 1;
+        discussPostService.updateStatus(id, status);
+        // 返回结果给JS异步请求
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("status", status);
+
+        // 触发事件，修改Elasticsearch中的帖子status
+        Event event = new Event()
+                .setTopic(TOPIC_PUBILISH)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireMessage(event);
+
+        return CommunityUtil.getJSONString(0, null, map);
+    }
+
+    // 删除
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    @ResponseBody
+    public String setDelete(int id) {
+        discussPostService.updateStatus(id, 2);
+
+        // 触发删帖事件,将帖子从Elasticsearch中删除
+        Event event = new Event()
+                .setTopic(TOPIC_DELETE)
+                .setUserId(hostHolder.getUser().getId())
+                .setEntityType(ENTITY_TYPE_POST)
+                .setEntityId(id);
+        eventProducer.fireMessage(event);
+
+        return CommunityUtil.getJSONString(0);
+    }
 }

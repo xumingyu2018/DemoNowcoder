@@ -1,7 +1,6 @@
 package com.xmy.demonowcoder.config;
 
 import com.xmy.demonowcoder.controller.interceptor.DemoInterceptor;
-import com.xmy.demonowcoder.controller.interceptor.LoginRequiredInterceptor;
 import com.xmy.demonowcoder.controller.interceptor.LoginTicketInterceptor;
 import com.xmy.demonowcoder.controller.interceptor.MessageInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +21,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private LoginTicketInterceptor loginTicketInterceptor;
 
-    @Autowired
-    private LoginRequiredInterceptor loginRequiredInterceptor;
+    /**
+     * 采用springsecurity,废弃登录拦截器
+     **/
+    //@Autowired
+    //private LoginRequiredInterceptor loginRequiredInterceptor;
 
     @Autowired
     private MessageInterceptor messageInterceptor;
@@ -38,8 +40,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");
 
         //将loginRequiredInterceptor注册进拦截器配置类
-        registry.addInterceptor(loginRequiredInterceptor)
-                .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");
+        // registry.addInterceptor(loginRequiredInterceptor)
+        //        .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");
 
         registry.addInterceptor(messageInterceptor)
                 .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");

@@ -83,7 +83,6 @@ public class EventConsumer implements CommunityConstant {
 
     /**
      * 消费帖子发布事件，将新增的帖子和添加评论后帖子评论数通过消息队列的方式save进Elastisearch服务器中
-     *
      * @param record
      */
     @KafkaListener(topics = {TOPIC_PUBILISH})
@@ -103,5 +102,25 @@ public class EventConsumer implements CommunityConstant {
         DiscussPost post = discussPostService.findDiscussPostById(event.getEntityId());
         elasticsearchService.saveDiscussPost(post);
 
+    }
+
+    /**
+     * 帖子删除事件
+     **/
+    @KafkaListener(topics = {TOPIC_DELETE})
+    public void handleDeleteMessage(ConsumerRecord record) {
+        if (record == null || record.value() == null) {
+            logger.error("消息的内容为空!");
+            return;
+        }
+        // 将record.value字符串格式转化为Event对象
+        Event event = JSONObject.parseObject(record.value().toString(), Event.class);
+        // 注意：event若data=null,是fastjson依赖版本的问题
+        if (event == null) {
+            logger.error("消息格式错误!");
+            return;
+        }
+
+        elasticsearchService.deleteDiscussPost(event.getEntityId());
     }
 }
