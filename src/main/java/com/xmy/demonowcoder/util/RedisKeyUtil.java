@@ -19,6 +19,10 @@ public class RedisKeyUtil {
     private static final String PREFIX_TICKET = "ticket";
     // 用户缓存
     private static final String PREFIX_USER = "user";
+    // UV (网站访问用户数量---根据Ip地址统计(包括没有登录的用户))
+    private static final String PREFIX_UV = "uv";
+    // DAU (活跃用户数量---根据userId)
+    private static final String PREFIX_DAU = "dau";
 
     /**
      * 某个实体的赞
@@ -71,6 +75,34 @@ public class RedisKeyUtil {
      **/
     public static String getUserKey(int userId) {
         return PREFIX_USER + SPLIT + userId;
+    }
+
+    /***
+     * 存储单日ip访问数量（uv）--HyperLogLog ---k:时间 v:ip
+     */
+    public static String getUVKey(String date) {
+        return PREFIX_UV + SPLIT + date;
+    }
+
+    /**
+     * 获取区间ip访问数量（uv）
+     */
+    public static String getUVKey(String startDate, String endDate) {
+        return PREFIX_UV + SPLIT + startDate + SPLIT + endDate;
+    }
+
+    /**
+     * 存储单日活跃用户（dau）--BitMap ---k:date v:userId
+     */
+    public static String getDAUKey(String date) {
+        return PREFIX_DAU + SPLIT + date;
+    }
+
+    /**
+     * 获取区间活跃用户
+     */
+    public static String getDAUKey(String startDate, String endDate) {
+        return PREFIX_DAU + SPLIT + startDate + SPLIT + endDate;
     }
 
 
