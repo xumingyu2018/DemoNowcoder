@@ -9,7 +9,9 @@ import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
+import com.xmy.demonowcoder.util.RedisKeyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,6 +41,8 @@ public class DiscussPostController implements CommunityConstant {
     private LikeService likeService;
     @Autowired
     private EventProducer eventProducer;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 发表评论
@@ -74,6 +78,13 @@ public class DiscussPostController implements CommunityConstant {
                 .setEntityType(ENTITY_TYPE_POST)
                 .setEntityId(post.getId());
         eventProducer.fireMessage(event);
+
+        /**
+         * 计算帖子分数
+         * 将新发布的帖子id存入set去重的redis集合
+         */
+        String redisKey = RedisKeyUtil.getPostScore();
+        redisTemplate.opsForSet().add(redisKey, post.getId());
 
         // 返回Json格式字符串,报错的情况将来统一处理
         return CommunityUtil.getJSONString(0, "发布成功！");
@@ -220,6 +231,13 @@ public class DiscussPostController implements CommunityConstant {
                 .setEntityType(ENTITY_TYPE_POST)
                 .setEntityId(id);
         eventProducer.fireMessage(event);
+
+        /**
+         * 计算帖子分数
+         * 将加精的帖子id存入set去重的redis集合
+         */
+        String redisKey = RedisKeyUtil.getPostScore();
+        redisTemplate.opsForSet().add(redisKey, id);
 
         return CommunityUtil.getJSONString(0, null, map);
     }

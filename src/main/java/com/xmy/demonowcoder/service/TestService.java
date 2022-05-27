@@ -6,6 +6,7 @@ import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -26,7 +27,6 @@ import java.util.Date;
 @Service
 @Scope("prototype")//多实例，默认是单例，每次getbean时实例化
 public class TestService {
-
 
     @Autowired//sevice调用dao层
     private TestDao testDao;
@@ -97,5 +97,17 @@ public class TestService {
                 return "ok";
             }
         });
+    }
+
+    // 服务器启动时就自动执行
+    @Async
+    public void execute1() {
+        System.out.println(Thread.currentThread().getName() + " execute1");
+
+    }
+
+    // @Scheduled(initialDelay = 10000, fixedRate = 1000)
+    public void execute2() {
+        System.out.println(Thread.currentThread().getName() + " execute2");
     }
 }

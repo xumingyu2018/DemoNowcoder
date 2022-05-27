@@ -8,7 +8,9 @@ import com.xmy.demonowcoder.service.CommentService;
 import com.xmy.demonowcoder.service.DiscussPostService;
 import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.HostHolder;
+import com.xmy.demonowcoder.util.RedisKeyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +34,8 @@ public class CommentController implements CommunityConstant {
     private EventProducer eventProducer;
     @Autowired
     private DiscussPostService discussPostService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     // 需要从前端带一个参数
     @RequestMapping(value = "/add/{discussPostId}", method = RequestMethod.POST)
@@ -79,6 +83,14 @@ public class CommentController implements CommunityConstant {
                     .setEntityType(ENTITY_TYPE_POST)
                     .setEntityId(discussPostId);
             eventProducer.fireMessage(event);
+
+            /**
+             * 计算帖子分数
+             * 将评论过的帖子id存入set去重的redis集合
+             */
+            String redisKey = RedisKeyUtil.getPostScore();
+            redisTemplate.opsForSet().add(redisKey, discussPostId);
+
         }
 
 

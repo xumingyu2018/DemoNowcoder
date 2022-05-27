@@ -12,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,14 +39,17 @@ public class HomeController implements CommunityConstant {
      * @return
      */
     @RequestMapping(value = "/index", method = RequestMethod.GET)
-    public String getIndexPage(Model model, Page page) {//传入model参数是因为要返回值给View
-        /*方法调用前，springMVC自动实例化Model和Page,并将Page注入Model
+    // @RequestParam(name = "orderMode") 这是从前端传参数方法是：/index?xx 与Controller绑定
+    public String getIndexPage(Model model, Page page, @RequestParam(name = "orderMode", defaultValue = "0") int orderMode) {
+        //传入model参数是因为要返回值给View
+        /*
+         * 方法调用前，springMVC自动实例化Model和Page,并将Page注入Model
          * 所以，在thymeleaf中可以直接访问Page对象中的数据
-         * */
+         */
         page.setRows(discussPostService.findDiscussPostRows(0));
-        page.setPath("/index");
+        page.setPath("/index?orderMode=" + orderMode);
 
-        List<DiscussPost> list = discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit());
+        List<DiscussPost> list = discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit(), orderMode);
         //List<DiscussPost> list=discussPostService.findDiscussPosts(0,0,10);//查寻所有的帖子
         //将查询的post帖子和user用户名拼接后放入map中,最后把全部map放入新的List中,因为UserId是外键，需要显示的是对应的名字即可
         List<Map<String, Object>> discussPost = new ArrayList<>();
@@ -68,6 +72,7 @@ public class HomeController implements CommunityConstant {
             }
         }
         model.addAttribute("discussPosts", discussPost);
+        model.addAttribute("orderMode", orderMode);
         return "/index";
     }
 

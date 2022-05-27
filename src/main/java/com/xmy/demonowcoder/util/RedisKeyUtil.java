@@ -23,6 +23,9 @@ public class RedisKeyUtil {
     private static final String PREFIX_UV = "uv";
     // DAU (活跃用户数量---根据userId)
     private static final String PREFIX_DAU = "dau";
+    // 热帖分数 (把需要更新的帖子id存入Redis当作缓存 )
+    private static final String PREFIX_POST = "post";
+
 
     /**
      * 某个实体的赞
@@ -77,7 +80,7 @@ public class RedisKeyUtil {
         return PREFIX_USER + SPLIT + userId;
     }
 
-    /***
+    /**
      * 存储单日ip访问数量（uv）--HyperLogLog ---k:时间 v:ip
      */
     public static String getUVKey(String date) {
@@ -103,6 +106,13 @@ public class RedisKeyUtil {
      */
     public static String getDAUKey(String startDate, String endDate) {
         return PREFIX_DAU + SPLIT + startDate + SPLIT + endDate;
+    }
+
+    /**
+     * 帖子分数 (发布、点赞、加精、评论时放入)
+     */
+    public static String getPostScore() {
+        return PREFIX_POST + SPLIT + "score";
     }
 
 
