@@ -89,8 +89,11 @@ spring:
             class: org.quartz.simpl.SimpleThreadPool
             threadCount: 5
 
-
-
+# wk:网站转图片（自定义配置）
+wk:
+  image:
+    command: d:/wkhtmltopdf/bin/wkhtmltoimage
+    storage: d:/wkhtmltopdf/wk-images
 
 
 

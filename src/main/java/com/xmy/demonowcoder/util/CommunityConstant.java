@@ -60,6 +60,10 @@ public interface CommunityConstant {
      * Kafka主题: 删除帖子
      */
     String TOPIC_DELETE = "delete";
+    /**
+     * Kafka主题: 分享
+     */
+    String TOPIC_SHARE = "share";
 
     /**
      * 系统用户ID
