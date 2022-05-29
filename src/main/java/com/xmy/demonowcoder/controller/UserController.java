@@ -1,5 +1,7 @@
 package com.xmy.demonowcoder.controller;
 
+import com.qiniu.util.Auth;
+import com.qiniu.util.StringMap;
 import com.xmy.demonowcoder.annotation.LoginRequired;
 import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.FollowService;
@@ -70,14 +72,59 @@ public class UserController implements CommunityConstant {
     @Autowired
     private FollowService followService;
 
+    // 头像上传到云服务器
+    @Value("${qiniu.key.access}")
+    private String accessKey;
+
+    @Value("${qiniu.key.secret}")
+    private String secretKey;
+
+    @Value("${qiniu.bucket.header.name}")
+    private String headerBucketName;
+
+    @Value("${qiniu.bucket.header.url}")
+    private String headerBucketUrl;
+
     @LoginRequired//自定义注解
     @RequestMapping(value = "/setting", method = RequestMethod.GET)
-    public String getSettingPage() {
+    public String getSettingPage(Model model) {
+        /**设置页面加载时就开始配置云服务器信息**/
+        // 上传随机文件名称
+        String fileName = CommunityUtil.generateUUID();
+        // 设置返回给云服务器的响应信息（规定用StringMap）
+        StringMap policy = new StringMap();
+        policy.put("returnBody", CommunityUtil.getJSONString(0));
+        // 生成上传云服务器的凭证
+        Auth auth = Auth.create(accessKey, secretKey);
+        // 上传指定文件名到云服务器指定空间，传入密钥，过期时间
+        String uploadToken = auth.uploadToken(headerBucketName, fileName, 3600, policy);
+
+        model.addAttribute("uploadToken", uploadToken);
+        model.addAttribute("fileName", fileName);
+
         return "/site/setting";
     }
 
     /**
-     * 上传头像功能
+     * 异步更新头像路径（云服务器异步返回Json,而不是返回页面，不然乱套）
+     */
+    @RequestMapping(value = "/header/url", method = RequestMethod.POST)
+    @ResponseBody
+    public String updateHeaderUrl(String fileName) {
+        if (StringUtils.isBlank(fileName)) {
+            return CommunityUtil.getJSONString(1, "文件名不能为空!");
+        }
+
+        String url = headerBucketUrl + "/" + fileName;
+        // 将数据库头像url更换成云服务器图片url
+        userService.updateHeader(hostHolder.getUser().getId(), url);
+
+        return CommunityUtil.getJSONString(0);
+    }
+
+
+    /**
+     * 上传头像功能（废弃：用云服务器替代）
      **/
     @LoginRequired
     @RequestMapping(value = "/upload", method = RequestMethod.POST)
@@ -122,7 +169,7 @@ public class UserController implements CommunityConstant {
     }
 
     /**
-     * 获取头像
+     * 获取头像（废弃：用云服务器替代）
      **/
     @RequestMapping(value = "/header/{fileName}", method = RequestMethod.GET)
     /**void:返回给浏览器的是特色的图片类型所以用void**/

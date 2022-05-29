@@ -96,6 +96,24 @@ wk:
     storage: d:/wkhtmltopdf/wk-images
 
 
+# qiniu
+qiniu:
+  # 七牛云密钥
+  key:
+    access: 7Ia7E86E3B9XTQ9TrlA5l_E-_WBnkmXQhxoE3-_n
+    secret: 17Ab9TcKnyn_jw4-a0XyH6iD_acl0KaKGEi6_Hqc
+  bucket:
+    # 头像上传云服务器配置
+    header:
+      name: xmyheader
+      url: http://rcmsg2hwa.hb-bkt.clouddn.com
+    # 分享功能云服务器配置
+    share:
+      name: xmyshare
+      url: http://rcmscfkkw.hb-bkt.clouddn.com
 
+#  # caffeine
+#  caffeine.posts.max-size=15
+#  caffeine.posts.expire-seconds=180
 
 
