@@ -112,8 +112,11 @@ qiniu:
       name: xmyshare
       url: http://rcmscfkkw.hb-bkt.clouddn.com
 
-#  # caffeine
-#  caffeine.posts.max-size=15
-#  caffeine.posts.expire-seconds=180
+# caffeine本地缓存优化热门帖子
+caffeine:
+  posts:
+    # 最大缓存15页
+    max-size: 15
+    expire-seconds: 180
 
 

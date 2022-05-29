@@ -109,6 +109,12 @@
             <artifactId>qiniu-java-sdk</artifactId>
             <version>7.2.28</version>
         </dependency>
+        <!--caffeine本地缓存优化热门帖子-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>2.9.3</version>
+        </dependency>
 
 
         <dependency>
