@@ -1,27 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 	<link rel="icon" href="https://static.nowcoder.com/images/logo_87_87.png"/>
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" crossorigin="anonymous">
-	<link rel="stylesheet" href="../css/global.css" />
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+		  crossorigin="anonymous">
+	<link rel="stylesheet" th:href="@{/css/global.css}"/>
 	<title>牛客网-个人主页</title>
 </head>
 <body>
-	<div class="nk-container">
+<div class="nk-container">
 		<!-- 头部 -->
-		<header class="bg-dark sticky-top">
-			<div class="container">
-				<!-- 导航 -->
-				<nav class="navbar navbar-expand-lg navbar-dark">
-					<!-- logo -->
-					<a class="navbar-brand" href="#"></a>
-					<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-						<span class="navbar-toggler-icon"></span>
-					</button>
-					<!-- 功能 -->
-					<div class="collapse navbar-collapse" id="navbarSupportedContent">
+	<header class="bg-dark sticky-top" th:replace="index::header">
+		<div class="container">
+			<!-- 导航 -->
+			<nav class="navbar navbar-expand-lg navbar-dark">
+				<!-- logo -->
+				<a class="navbar-brand" href="#"></a>
+				<button class="navbar-toggler" type="button" data-toggle="collapse"
+						data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+						aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				</button>
+				<!-- 功能 -->
+				<div class="collapse navbar-collapse" id="navbarSupportedContent">
 						<ul class="navbar-nav mr-auto">
 							<li class="nav-item ml-3 btn-group-vertical">
 								<a class="nav-link" href="../index.html">首页</a>
@@ -65,104 +68,37 @@
 				<div class="position-relative">
 					<ul class="nav nav-tabs">
 						<li class="nav-item">
-							<a class="nav-link" href="profile.html">个人信息</a>
+							<a class="nav-link" th:href="@{|/user/profile/${user.id}|}">个人信息</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link active" href="my-post.html">我的帖子</a>
+							<a class="nav-link active" th:href="@{|/discuss/myPost/${user.id}|}">我的帖子</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" href="my-reply.html">我的回复</a>
+							<a class="nav-link" th:href="@{/comment/myComment}">我的回复</a>
 						</li>
 					</ul>
-					<a href="profile.html" class="text-muted position-absolute rt-0">返回个人主页&gt;</a>
+					<a class="text-muted position-absolute rt-0" th:href="@{|/user/profile/${userId}|}">返回个人主页&gt;</a>
 				</div>
 				<!-- 我的帖子 -->
 				<div class="mt-4">
-					<h6><b class="square"></b> 发布的帖子(93)</h6>
+					<h6><b class="square"></b> 发布的帖子(<i th:text="${rows}">93</i>)</h6>
 					<ul class="list-unstyled mt-4 pl-3 pr-3">
-						<li class="border-bottom pb-3 mt-4">
+						<li class="border-bottom pb-3 mt-4" th:each="map:${discussPost}">
 							<div class="font-size-16 text-info">
-								<a href="#" class="text-info">备战春招，面试刷题跟他复习，一个月全搞定！</a>
+								<a class="text-info" th:href="@{|/discuss/detail/${map.post.id}|}"
+								   th:utext="${map.post.title}">帖子标题</a>
 							</div>
-							<div class="mt-1 font-size-14">
-								金三银四的金三已经到了，你还沉浸在过年的喜悦中吗？
-								如果是，那我要让你清醒一下了：目前大部分公司已经开启了内推，正式网申也将在3月份陆续开始，金三银四，春招的求职黄金时期已经来啦！！！
-								再不准备，作为19应届生的你可能就找不到工作了。。。作为20届实习生的你可能就找不到实习了。。。
-								现阶段时间紧，任务重，能做到短时间内快速提升的也就只有算法了，
-								那么算法要怎么复习？重点在哪里？常见笔试面试算法题型和解题思路以及最优代码是怎样的？
-								跟左程云老师学算法，不仅能解决以上所有问题，还能在短时间内得到最大程度的提升！！！								
+							<div class="mt-1 font-size-14" th:utext="${map.post.content}">
+								帖子内容
 							</div>
 							<div class="text-right font-size-12 text-muted">
-								赞 <i class="mr-3">11</i> 发布于 <b>2019-04-15 10:10:10</b>
+								赞 <i class="mr-3" th:text="${map.likeCount}">点赞数量</i> 发布于 <b
+									th:text="${#dates.format(map.post.createTime,'yyyy-MM-dd HH:mm:ss')}">帖子发布时间0</b>
 							</div>
 						</li>
-						<li class="border-bottom pb-3 mt-4">
-							<div class="font-size-16 text-info">
-								<a href="#" class="text-info">备战春招，面试刷题跟他复习，一个月全搞定！</a>
-							</div>
-							<div class="mt-1 font-size-14">
-								金三银四的金三已经到了，你还沉浸在过年的喜悦中吗？
-								如果是，那我要让你清醒一下了：目前大部分公司已经开启了内推，正式网申也将在3月份陆续开始，金三银四，春招的求职黄金时期已经来啦！！！
-								再不准备，作为19应届生的你可能就找不到工作了。。。作为20届实习生的你可能就找不到实习了。。。
-								现阶段时间紧，任务重，能做到短时间内快速提升的也就只有算法了，
-								那么算法要怎么复习？重点在哪里？常见笔试面试算法题型和解题思路以及最优代码是怎样的？
-								跟左程云老师学算法，不仅能解决以上所有问题，还能在短时间内得到最大程度的提升！！！								
-							</div>
-							<div class="text-right font-size-12 text-muted">
-								赞 <i class="mr-3">11</i> 发布于 <b>2019-04-15 10:10:10</b>
-							</div>
-						</li>
-						<li class="border-bottom pb-3 mt-4">
-							<div class="font-size-16 text-info">
-								<a href="#" class="text-info">备战春招，面试刷题跟他复习，一个月全搞定！</a>
-							</div>
-							<div class="mt-1 font-size-14">
-								金三银四的金三已经到了，你还沉浸在过年的喜悦中吗？
-								如果是，那我要让你清醒一下了：目前大部分公司已经开启了内推，正式网申也将在3月份陆续开始，金三银四，春招的求职黄金时期已经来啦！！！
-								再不准备，作为19应届生的你可能就找不到工作了。。。作为20届实习生的你可能就找不到实习了。。。
-								现阶段时间紧，任务重，能做到短时间内快速提升的也就只有算法了，
-								那么算法要怎么复习？重点在哪里？常见笔试面试算法题型和解题思路以及最优代码是怎样的？
-								跟左程云老师学算法，不仅能解决以上所有问题，还能在短时间内得到最大程度的提升！！！								
-							</div>
-							<div class="text-right font-size-12 text-muted">
-								赞 <i class="mr-3">11</i> 发布于 <b>2019-04-15 10:10:10</b>
-							</div>
-						</li>
-						<li class="border-bottom pb-3 mt-4">
-							<div class="font-size-16 text-info">
-								<a href="#" class="text-info">备战春招，面试刷题跟他复习，一个月全搞定！</a>
-							</div>
-							<div class="mt-1 font-size-14">
-								金三银四的金三已经到了，你还沉浸在过年的喜悦中吗？
-								如果是，那我要让你清醒一下了：目前大部分公司已经开启了内推，正式网申也将在3月份陆续开始，金三银四，春招的求职黄金时期已经来啦！！！
-								再不准备，作为19应届生的你可能就找不到工作了。。。作为20届实习生的你可能就找不到实习了。。。
-								现阶段时间紧，任务重，能做到短时间内快速提升的也就只有算法了，
-								那么算法要怎么复习？重点在哪里？常见笔试面试算法题型和解题思路以及最优代码是怎样的？
-								跟左程云老师学算法，不仅能解决以上所有问题，还能在短时间内得到最大程度的提升！！！								
-							</div>
-							<div class="text-right font-size-12 text-muted">
-								赞 <i class="mr-3">11</i> 发布于 <b>2019-04-15 10:10:10</b>
-							</div>
-						</li>
-						<li class="border-bottom pb-3 mt-4">
-							<div class="font-size-16 text-info">
-								<a href="#" class="text-info">备战春招，面试刷题跟他复习，一个月全搞定！</a>
-							</div>
-							<div class="mt-1 font-size-14">
-								金三银四的金三已经到了，你还沉浸在过年的喜悦中吗？
-								如果是，那我要让你清醒一下了：目前大部分公司已经开启了内推，正式网申也将在3月份陆续开始，金三银四，春招的求职黄金时期已经来啦！！！
-								再不准备，作为19应届生的你可能就找不到工作了。。。作为20届实习生的你可能就找不到实习了。。。
-								现阶段时间紧，任务重，能做到短时间内快速提升的也就只有算法了，
-								那么算法要怎么复习？重点在哪里？常见笔试面试算法题型和解题思路以及最优代码是怎样的？
-								跟左程云老师学算法，不仅能解决以上所有问题，还能在短时间内得到最大程度的提升！！！								
-							</div>
-							<div class="text-right font-size-12 text-muted">
-								赞 <i class="mr-3">11</i> 发布于 <b>2019-04-15 10:10:10</b>
-							</div>
-						</li>																		
 					</ul>
 					<!-- 分页 -->
-					<nav class="mt-5">
+					<nav class="mt-5" th:replace="index::pagination">
 						<ul class="pagination justify-content-center">
 							<li class="page-item"><a class="page-link" href="#">首页</a></li>
 							<li class="page-item disabled"><a class="page-link" href="#">上一页</a></li>
@@ -245,6 +181,6 @@
 	<script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" crossorigin="anonymous"></script>
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" crossorigin="anonymous"></script>
-	<script src="../js/global.js"></script>
+<script th:src="@{/js/global.js}"></script>
 </body>
 </html>

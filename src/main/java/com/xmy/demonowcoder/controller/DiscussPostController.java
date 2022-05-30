@@ -46,7 +46,6 @@ public class DiscussPostController implements CommunityConstant {
 
     /**
      * 发表评论
-     *
      * @param title
      * @param content
      * @return
@@ -189,6 +188,39 @@ public class DiscussPostController implements CommunityConstant {
 
         return "/site/discuss-detail";
     }
+
+    /**
+     * 查询我的帖子
+     */
+    @RequestMapping(value = "/myPost/{userId}", method = RequestMethod.GET)
+    public String getMyDiscussPost(@PathVariable("userId") int userId, Model model, Page page) {
+        page.setLimit(5);
+        page.setPath("/discuss/myPost/" + userId);
+        page.setRows(discussPostService.findDiscussPostRows(userId));
+
+        User user = userService.findUserById(userId);
+        model.addAttribute("user", user);
+        model.addAttribute("rows", discussPostService.findDiscussPostRows(userId));
+
+        // 按时间排序
+        List<DiscussPost> list = discussPostService.findDiscussPosts(userId, page.getOffset(), page.getLimit(), 0);
+        List<Map<String, Object>> discussPost = new ArrayList<>();
+        if (list != null) {
+            for (DiscussPost post : list) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("post", post);
+
+                long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, post.getId());
+                map.put("likeCount", likeCount);
+
+                discussPost.add(map);
+            }
+        }
+        model.addAttribute("discussPost", discussPost);
+
+        return "/site/my-post";
+    }
+
 
     // 置顶、取消置顶
     @RequestMapping(value = "/top", method = RequestMethod.POST)
