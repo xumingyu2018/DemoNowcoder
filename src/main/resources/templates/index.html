@@ -176,7 +176,7 @@
 						</li>
 						<!--#numbers.sequence #调用thymelead自带工具numbers,从from到to的数组-->
 						<li th:class="|page-item ${i==page.current?'active':''}|" th:each="i:${#numbers.sequence(page.from,page.to)}">
-							<a class="page-link" href="#" th:text="${i}">1</a>
+							<a class="page-link" th:href="@{${page.path}(current=${i})}" th:text="${i}">1</a>
 						</li>
 
 						<li th:class="|page-item ${page.current==page.total?'disabled':''}|">
