@@ -119,4 +119,9 @@ caffeine:
     max-size: 15
     expire-seconds: 180
 
-
+# actuator项目监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans,database,info,health

@@ -115,7 +115,12 @@
             <artifactId>caffeine</artifactId>
             <version>2.9.3</version>
         </dependency>
-
+        <!-- actuator项目监控-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>2.7.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
