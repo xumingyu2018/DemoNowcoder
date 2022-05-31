@@ -27,5 +27,8 @@ public interface CommentMapper {
 
     Comment selectComment(@Param("id") int id);
 
+    List<Comment> selectCommentsByUserId(@Param("userId") int userId, @Param("entityType") int entityType,
+                                         @Param("offset") int offset, @Param("limit") int limit);
 
+    int selectCountByUserId(@Param("userId") int userId, @Param("entityType") int entityType);
 }

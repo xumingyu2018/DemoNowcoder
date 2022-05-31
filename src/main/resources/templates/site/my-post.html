@@ -71,13 +71,13 @@
 							<a class="nav-link" th:href="@{|/user/profile/${user.id}|}">个人信息</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link active" th:href="@{|/discuss/myPost/${user.id}|}">我的帖子</a>
+							<a class="nav-link active" th:href="@{|/user/myPost/${user.id}|}">我的帖子</a>
 						</li>
 						<li class="nav-item">
-							<a class="nav-link" th:href="@{/comment/myComment}">我的回复</a>
+							<a class="nav-link" th:href="@{|/user/myComment/${user.id}|}">我的回复</a>
 						</li>
 					</ul>
-					<a class="text-muted position-absolute rt-0" th:href="@{|/user/profile/${userId}|}">返回个人主页&gt;</a>
+					<a class="text-muted position-absolute rt-0" th:href="@{|/user/profile/${user.id}|}">返回个人主页&gt;</a>
 				</div>
 				<!-- 我的帖子 -->
 				<div class="mt-4">
