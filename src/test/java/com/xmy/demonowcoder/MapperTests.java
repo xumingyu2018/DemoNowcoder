@@ -2,7 +2,7 @@ package com.xmy.demonowcoder;
 
 import com.xmy.demonowcoder.dao.*;
 import com.xmy.demonowcoder.entities.*;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,7 +16,7 @@ import java.util.List;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = DemoNowcoderApplication.class)//启用DemoNowcoderApplication类作为配置类
-class MapperTests {//ApplicationContextAware实现spring容器
+public class MapperTests {//ApplicationContextAware实现spring容器
 
     @Autowired
     private UserMapper userMapper;
@@ -69,7 +69,7 @@ class MapperTests {//ApplicationContextAware实现spring容器
 
     @Test
     public void testSelectPosts() {
-        List<DiscussPost> list = discussPostMapper.selectDiscussPosts(0, 0, 10);
+        List<DiscussPost> list = discussPostMapper.selectDiscussPosts(0, 0, 10, 0);
         for (DiscussPost post : list) {
             System.out.println(post);
         }
@@ -160,6 +160,18 @@ class MapperTests {//ApplicationContextAware实现spring容器
         ids.add(12);
         ids.add(11);
         messageMapper.updateStatus(ids, 1);
+    }
+
+    @Test
+    public void testNotices() {
+        Message message = messageMapper.selectLatestNotice(101, "comment");
+        System.out.println(message);
+    }
+
+    @Test
+    public void testUpdateDiscussportType() {
+        discussPostMapper.updateType(130, 1);
+        discussPostMapper.updateStatus(130, 1);
     }
 
 

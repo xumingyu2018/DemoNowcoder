@@ -144,8 +144,9 @@
                                 <a th:href="@{|/letter/detail/${map.conversation.conversationId}|}"
                                    th:utext="${map.conversation.content}">米粉车, 你来吧!</a>
                                 <ul class="d-inline font-size-12 float-right">
-                                    <li class="d-inline ml-2"><a class="text-primary" href="#">共<i
-                                            th:text="${map.letterCount}">5</i>条会话</a></li>
+                                    <li class="d-inline ml-2"><a class="text-primary"
+																 th:href="@{|/letter/detail/${map.conversation.conversationId}|}">共<i
+											th:text="${map.letterCount}">5</i>条会话</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -169,12 +170,13 @@
 		</div>
 
 		<!-- 尾部 -->
-		<footer class="bg-dark">
+		<footer class="bg-dark" th:replace="index::footer">
 			<div class="container">
 				<div class="row">
 					<!-- 二维码 -->
 					<div class="col-4 qrcode">
-						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail" style="width:136px;" />
+						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail"
+							 style="width:136px;"/>
 					</div>
 					<!-- 公司信息 -->
 					<div class="col-8 detail-info">

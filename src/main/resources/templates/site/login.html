@@ -65,7 +65,7 @@
 			</div>
 		</header>
 
-		<!-- 内容 -->
+    <!-- 内容 -->
     <div class="main">
         <div class="container pl-5 pr-5 pt-3 pb-3 mt-3 mb-3">
             <h3 class="text-center text-info border-bottom pb-3">登&nbsp;&nbsp;录</h3>
@@ -118,7 +118,7 @@
                         <input id="remember-me" name="rememberme" th:checked="${param.rememberme}"
                                type="checkbox">
                         <label class="form-check-label" for="remember-me">记住我</label>
-                        <a class="text-danger float-right" th:href="@{/user/forget}">忘记密码?</a>
+                        <a class="text-danger float-right" th:href="@{/forget}">忘记密码?</a>
                     </div>
                 </div>
                 <div class="form-group row mt-4">
@@ -132,17 +132,18 @@
     </div>
 
 		<!-- 尾部 -->
-		<footer class="bg-dark">
-			<div class="container">
-				<div class="row">
-					<!-- 二维码 -->
-					<div class="col-4 qrcode">
-						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail" style="width:136px;" />
-					</div>
-					<!-- 公司信息 -->
-					<div class="col-8 detail-info">
-						<div class="row">
-							<div class="col">
+    <footer class="bg-dark" th:replace="index::footer">
+        <div class="container">
+            <div class="row">
+                <!-- 二维码 -->
+                <div class="col-4 qrcode">
+                    <img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail"
+                         style="width:136px;"/>
+                </div>
+                <!-- 公司信息 -->
+                <div class="col-8 detail-info">
+                    <div class="row">
+                        <div class="col">
 								<ul class="nav">
 									<li class="nav-item">
 										<a class="nav-link text-light" href="#">关于我们</a>

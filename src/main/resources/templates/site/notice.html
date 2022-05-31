@@ -98,12 +98,14 @@
                             </h6>
                             <div>
                                 <a th:href="@{/notice/detail/comment}">
-                                    用户 <i th:utext="${commentNotice.user.username}">nowcoder</i>
-                                    评论了你的<b th:text="${commentNotice.entityType==1?'帖子':'回复'}">帖子</b> ...</a>
-                                <ul class="d-inline font-size-12 float-right">
-                                    <li class="d-inline ml-2"><span class="text-primary">共 <i
-                                            th:text="${commentNotice.count}">3</i> 条会话</span></li>
-                                </ul>
+									用户 <i th:utext="${commentNotice.user.username}">nowcoder</i>
+									评论了你的<b th:text="${commentNotice.entityType==1?'帖子':'回复'}">帖子</b> 点击查看！</a>
+								<ul class="d-inline font-size-12 float-right">
+									<li class="d-inline ml-2"><a th:href="@{/notice/detail/comment}"><span
+											class="text-primary">共 <i
+											th:text="${commentNotice.count}">3</i> 条会话</span></a>
+									</li>
+								</ul>
                             </div>
                         </div>
                     </li>
@@ -119,15 +121,17 @@
                                       th:text="${#dates.format(likeNotice.message.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-28 14:13:25</span>
                             </h6>
                             <div>
-                                <a th:href="@{/notice/detail/like}">
-                                    用户
-                                    <i th:utext="${likeNotice.user.username}">nowcoder</i>
-                                    点赞了你的<b th:text="${likeNotice.entityType==1?'帖子':'回复'}">帖子</b> ...
-                                </a>
-                                <ul class="d-inline font-size-12 float-right">
-                                    <li class="d-inline ml-2"><span class="text-primary">共 <i
-                                            th:text="${likeNotice.count}">3</i> 条会话</span></li>
-                                </ul>
+								<a th:href="@{/notice/detail/like}">
+									用户
+									<i th:utext="${likeNotice.user.username}">nowcoder</i>
+									点赞了你的<b th:text="${likeNotice.entityType==1?'帖子':'回复'}">帖子</b> 点击查看！
+								</a>
+								<ul class="d-inline font-size-12 float-right">
+									<li class="d-inline ml-2"><a th:href="@{/notice/detail/like}"><span
+											class="text-primary">共 <i
+											th:text="${likeNotice.count}">3</i> 条会话</span></a>
+									</li>
+								</ul>
                             </div>
                         </div>
                     </li>
@@ -147,12 +151,14 @@
                                 <a th:href="@{/notice/detail/follow}">
                                     用户
                                     <i th:utext="${followNotice.user.username}">nowcoder</i>
-                                    关注了你 ...
-                                </a>
-                                <ul class="d-inline font-size-12 float-right">
-                                    <li class="d-inline ml-2"><span class="text-primary">共 <i
-                                            th:text="${followNotice.count}">3</i> 条会话</span></li>
-                                </ul>
+									关注了你 点击查看！
+								</a>
+								<ul class="d-inline font-size-12 float-right">
+									<li class="d-inline ml-2"><a th:href="@{/notice/detail/follow}"><span
+											class="text-primary">共 <i
+											th:text="${followNotice.count}">3</i> 条会话</span></a>
+									</li>
+								</ul>
                             </div>
                         </div>
                     </li>
@@ -161,12 +167,13 @@
 		</div>
 
 		<!-- 尾部 -->
-		<footer class="bg-dark">
+		<footer class="bg-dark" th:replace="index::footer">
 			<div class="container">
 				<div class="row">
 					<!-- 二维码 -->
 					<div class="col-4 qrcode">
-						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail" style="width:136px;" />
+						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail"
+							 style="width:136px;"/>
 					</div>
 					<!-- 公司信息 -->
 					<div class="col-8 detail-info">

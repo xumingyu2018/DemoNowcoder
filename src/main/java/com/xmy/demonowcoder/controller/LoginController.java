@@ -5,6 +5,7 @@ import com.xmy.demonowcoder.entities.User;
 import com.xmy.demonowcoder.service.UserService;
 import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
+import com.xmy.demonowcoder.util.MailClient;
 import com.xmy.demonowcoder.util.RedisKeyUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -15,15 +16,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.*;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.Map;
@@ -52,6 +53,12 @@ public class LoginController implements CommunityConstant {
 
     @Value("${server.servlet.context-path}")
     private String contextPath;
+
+    @Autowired
+    private TemplateEngine templateEngine;
+
+    @Autowired
+    private MailClient mailClient;
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String getLoginPage() {
@@ -192,6 +199,67 @@ public class LoginController implements CommunityConstant {
         userService.logout(ticket);
         SecurityContextHolder.clearContext();
         return "redirect:/login";
+    }
+
+    /**
+     * 忘记密码页面
+     **/
+    @RequestMapping(path = "/forget", method = RequestMethod.GET)
+    public String getForgetPage() {
+        return "/site/forget";
+    }
+
+    /**
+     * 获取验证码
+     **/
+    @RequestMapping(value = "/forget/code", method = RequestMethod.GET)
+    @ResponseBody
+    public String getForgetCode(String email, HttpSession session) {
+        if (StringUtils.isBlank(email)) {
+            return CommunityUtil.getJSONString(1, "邮箱不能为空！");
+        }
+        // 校验邮箱是否注册，未注册则提示
+        if (!userService.isEmailExist(email)) {
+            return CommunityUtil.getJSONString(1, "该邮箱尚未注册！");
+        }
+
+        //发送邮件
+        Context context = new Context();
+        //将用户邮箱传给邮箱模板
+        context.setVariable("email", email);
+        //将4位数验证码传给邮箱模板
+        String code = CommunityUtil.generateUUID().substring(0, 4);
+        context.setVariable("verifyCode", code);
+        String content = templateEngine.process("/mail/forget", context);
+        mailClient.sendMail(email, "找回密码", content);
+
+        // 服务器保存验证码以便与用户输入验证码比对
+        // 加上email：解决验证码存在共享问题
+        session.setAttribute(email + "_verifyCode", code);
+
+        return "找回密码成功！";
+    }
+
+    /**
+     * 重置密码
+     */
+    @RequestMapping(path = "/forget/password", method = RequestMethod.POST)
+    public String resetPassword(String email, String verifyCode, String password, Model model, HttpSession session) {
+        String code = (String) session.getAttribute(email + "_verifyCode");
+
+        if (StringUtils.isBlank(verifyCode) || StringUtils.isBlank(code) || !code.equalsIgnoreCase(verifyCode)) {
+            model.addAttribute("codeMsg", "验证码错误!");
+            return "/site/forget";
+        }
+
+        Map<String, Object> map = userService.resetPassword(email, password);
+        if (map.containsKey("user")) {
+            return "redirect:/login";
+        } else {
+            model.addAttribute("emailMsg", map.get("emailMsg"));
+            model.addAttribute("passwordMsg", map.get("passwordMsg"));
+            return "/site/forget";
+        }
     }
 
 }

@@ -259,8 +259,14 @@ public class UserService implements CommunityConstant {
         return map;
     }
 
+    // 判断邮箱是否已注册
+    public boolean isEmailExist(String email) {
+        User user = userMapper.selectByEmail(email);
+        return user != null;
+    }
+
     /**
-     * 重置密码(有bug!!)
+     * 重置忘记密码
      **/
     public Map<String, Object> resetPassword(String email, String password) {
         HashMap<String, Object> map = new HashMap<>();
@@ -294,6 +300,9 @@ public class UserService implements CommunityConstant {
         return map;
     }
 
+    /**
+     * 通过用户名查询用户
+     */
     public User findUserByName(String username) {
         return userMapper.selectByName(username);
     }

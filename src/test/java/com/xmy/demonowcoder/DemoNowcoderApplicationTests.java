@@ -2,7 +2,7 @@ package com.xmy.demonowcoder;
 
 import com.xmy.demonowcoder.dao.TestDao;
 import com.xmy.demonowcoder.service.TestService;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

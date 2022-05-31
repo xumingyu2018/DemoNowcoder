@@ -11,7 +11,6 @@ import com.xmy.demonowcoder.service.*;
 import com.xmy.demonowcoder.util.CommunityConstant;
 import com.xmy.demonowcoder.util.CommunityUtil;
 import com.xmy.demonowcoder.util.HostHolder;
-import com.xmy.demonowcoder.util.MailClient;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,11 +23,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -69,12 +65,6 @@ public class UserController implements CommunityConstant {
     @Autowired
     /**获得当前登录用户的信息**/
     private HostHolder hostHolder;
-
-    @Autowired
-    private TemplateEngine templateEngine;
-
-    @Autowired
-    private MailClient mailClient;
 
     @Autowired
     private LikeService likeService;
@@ -221,65 +211,6 @@ public class UserController implements CommunityConstant {
             model.addAttribute("oldPasswordMsg", map.get("oldPasswordMsg"));
             model.addAttribute("newPasswordMsg", map.get("newPasswordMsg"));
             return "/site/setting";
-        }
-    }
-
-    /**
-     * 忘记密码页面
-     **/
-    @RequestMapping(path = "/forget", method = RequestMethod.GET)
-    public String getForgetPage() {
-        return "/site/forget";
-    }
-
-    /**
-     * 获取验证码(有bug!!!)
-     **/
-    @RequestMapping(value = "/forget/code", method = RequestMethod.GET)
-    @ResponseBody
-    public String getForgetCode(String email, HttpSession session, Model model) {
-        if (StringUtils.isBlank(email)) {
-            model.addAttribute("emailMsg", "邮箱不能为空！");
-            return "redirect:/forget";
-        }
-        //发送邮件
-        Context context = new Context();
-        //将用户邮箱传给邮箱模板
-        context.setVariable("email", email);
-        //将4位数验证码传给邮箱模板
-        String code = CommunityUtil.generateUUID().substring(0, 4);
-        context.setVariable("verifyCode", code);
-        String content = templateEngine.process("/mail/forget", context);
-        mailClient.sendMail(email, "找回密码", content);
-
-        //服务器保存验证码以便与用户输入验证码比对
-        session.setAttribute("verifyCode", code);
-
-        return "找回密码成功！";
-    }
-
-    /**
-     * 重置密码功能（有bug!!）
-     */
-    @RequestMapping(value = "/forget/password", method = RequestMethod.POST)
-    public String resetPassword(String email, String verifyCode, String password, Model model, HttpSession session) {
-        //用户比对服务器存入的验证码
-        String code = (String) session.getAttribute("verifyCode");
-        if (StringUtils.isBlank(verifyCode) || StringUtils.isBlank(code) || !code.equalsIgnoreCase(verifyCode)) {
-            model.addAttribute("codeMsg", "验证码错误!");
-            return "/site/forget";
-        }
-        /*
-            根据email重置密码
-         */
-        Map<String, Object> map = userService.resetPassword(email, password);
-
-        if (map.containsKey("user")) {
-            return "redirect:/login";
-        } else {
-            model.addAttribute("emailMsg", map.get("emailMsg"));
-            model.addAttribute("passwordMsg", map.get("passwordMsg"));
-            return "/site/forget";
         }
     }
 

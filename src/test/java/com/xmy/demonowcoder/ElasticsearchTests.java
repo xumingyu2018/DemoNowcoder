@@ -63,9 +63,9 @@ public class ElasticsearchTests {
     @Test
     public void testInsetList() {
         // 根据user_id从数据库插入多条同一用户数据到Elasticsearch
-        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(101, 0, 100));
-        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(107, 0, 100));
-        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(103, 0, 100));
+        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(101, 0, 100, 0));
+        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(107, 0, 100, 0));
+        discussRepository.saveAll(discussPostMapper.selectDiscussPosts(103, 0, 100, 0));
         // discussRepository.saveAll(discussPostMapper.selectDiscussPosts(0, 0,  1000));
     }
 

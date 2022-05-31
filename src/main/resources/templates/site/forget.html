@@ -64,17 +64,16 @@
 			</div>
 		</header>
 
-		<!-- 内容 -->
+    <!-- 内容 -->
     <div class="main">
         <div class="container pl-5 pr-5 pt-3 pb-3 mt-3 mb-3">
             <form class="mt-5" method="post" th:action="@{/forget/password}">
                 <div class="form-group row">
                     <label class="col-sm-2 col-form-label text-right" for="your-email">邮箱:</label>
                     <div class="col-sm-10">
-                        <input id="your-email"
-                               name="email" placeholder="请输入您的邮箱!"
-                               required th:class="|form-control ${emailMsg!=null?'is-invalid':''}|"
-                               th:value="${param.email}" type="email">
+                        <input id="your-email" name="email" placeholder="请输入您的邮箱!" required
+                               th:class="|form-control ${emailMsg!=null?'is-invalid':''}|" th:value="${param.email}"
+                               type="email">
                         <div class="invalid-feedback" th:text="${emailMsg}">
                             该邮箱已被注册!
                         </div>
@@ -83,25 +82,22 @@
                 <div class="form-group row mt-4">
                     <label class="col-sm-2 col-form-label text-right" for="verifycode">验证码:</label>
                     <div class="col-sm-6">
-                        <input id="verifycode"
-                               name="verifyCode" placeholder="请输入验证码!"
-                               th:class="|form-control ${codeMsg!=null?'is-invalid':''}|"
-                               th:value="${param.verifyCode}" type="text">
+                        <input id="verifycode" name="verifyCode" placeholder="请输入验证码!"
+                               th:class="|form-control ${codeMsg!=null?'is-invalid':''}|" th:value="${param.verifyCode}"
+                               type="text">
                         <div class="invalid-feedback" th:text="${codeMsg}">
                             验证码不正确!
                         </div>
                     </div>
                     <div class="col-sm-4">
-                        <a class="btn btn-info form-control" id="verifyCodeBtn"
-                           th:href="@{/user/forget/code}">获取验证码</a>
+                        <a class="btn btn-info form-control" id="verifyCodeBtn">获取验证码</a>
                     </div>
                 </div>
                 <div class="form-group row mt-4">
                     <label class="col-sm-2 col-form-label text-right" for="your-password">新密码:</label>
                     <div class="col-sm-10">
-                        <input id="your-password"
-                               name="password" placeholder="请输入新的密码!"
-                               required th:class="|form-control ${passwordMsg!=null?'is-invalid':''}|"
+                        <input id="your-password" name="password" placeholder="请输入新的密码!" required
+                               th:class="|form-control ${passwordMsg!=null?'is-invalid':''}|"
                                th:value="${param.password}" type="password">
                         <div class="invalid-feedback" th:text="${passwordMsg}">
                             密码长度不能小于8位!
@@ -115,21 +111,23 @@
                     </div>
                 </div>
             </form>
+
         </div>
     </div>
 
 		<!-- 尾部 -->
-		<footer class="bg-dark">
-			<div class="container">
-				<div class="row">
-					<!-- 二维码 -->
-					<div class="col-4 qrcode">
-						<img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail" style="width:136px;" />
-					</div>
-					<!-- 公司信息 -->
-					<div class="col-8 detail-info">
-						<div class="row">
-							<div class="col">
+    <footer class="bg-dark" th:replace="index::footer">
+        <div class="container">
+            <div class="row">
+                <!-- 二维码 -->
+                <div class="col-4 qrcode">
+                    <img src="https://uploadfiles.nowcoder.com/app/app_download.png" class="img-thumbnail"
+                         style="width:136px;"/>
+                </div>
+                <!-- 公司信息 -->
+                <div class="col-8 detail-info">
+                    <div class="row">
+                        <div class="col">
 								<ul class="nav">
 									<li class="nav-item">
 										<a class="nav-link text-light" href="#">关于我们</a>
@@ -176,17 +174,15 @@
                                 </ul>
                             </div>
                         </div>
-                    </div>
                 </div>
             </div>
-        </footer>
+        </div>
+    </footer>
 </div>
-
 <script crossorigin="anonymous" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 <script crossorigin="anonymous"
         src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-<script crossorigin="anonymous"
-        src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script crossorigin="anonymous" src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 <script th:src="@{/js/global.js}"></script>
 <script th:src="@{/js/forget.js}"></script>
 </body>
