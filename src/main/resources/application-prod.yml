@@ -1,0 +1,128 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /community
+
+mybatis:
+  type-aliases-package: com.xmy.demonowcoder.entities
+  mapper-locations: classpath:mapper/*.xml  #sql映射文件位置
+  configuration:
+    #  驼峰命名（可以不写全局；配置文件，所有全局配置文件的配置都放在configuration配置项中即可）
+    map-underscore-to-camel-case: true
+    use-generated-keys: true #主键自增
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+#community域名
+community:
+  path:
+    domain: http://101.33.205.98
+    upload: /tmp/upload
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/community?characterEncoding=utf8&serverTimezone=UTC
+    username: root
+    password: my981022
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jdbc:
+    template:
+      query-timeout: 3
+  devtools:
+    livereload:
+      port: 35730
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+  #  配置邮箱
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: 260602448@qq.com
+    password: mpdckdwkmxyvbjba
+    protocol: smtps
+  #RedisProperties
+  redis:
+    database: 11
+    host: localhost
+    port: 6379
+  #KafkaProperties
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-consumer-group
+      # consumer偏移量记录下来提交
+      enable-auto-commit: true
+      # 自动提交频率
+      auto-commit-interval: 3000
+  #ElasticsearchPropertier--Springboot版本2.1.5 9300:TCP通信
+  data:
+    elasticsearch:
+      cluster-name: demonowcoder
+      cluster-nodes: 127.0.0.1:9300
+
+  #TaskExecutionProperties
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 15
+        queue-capacity: 100
+    #TaskSchedulingProperties
+    scheduling:
+      pool:
+        size: 5
+  # QuartzProperties
+  quartz:
+    job-store-type: jdbc
+    scheduler-name: communityScheduler
+    properties:
+      org:
+        quartz:
+          jobStore:
+            class: org.quartz.impl.jdbcjobstore.JobStoreTX
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+            isClustered: true
+          scheduler:
+            instanceId: AUTO
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 5
+  thymeleaf:
+    cache: true
+
+# wk:网站转图片（自定义配置）
+wk:
+  image:
+    command: /opt/wkhtmltoimage.sh
+    storage: /tmp/wk-images
+
+
+# qiniu
+qiniu:
+  # 七牛云密钥
+  key:
+    access: 7Ia7E86E3B9XTQ9TrlA5l_E-_WBnkmXQhxoE3-_n
+    secret: 17Ab9TcKnyn_jw4-a0XyH6iD_acl0KaKGEi6_Hqc
+  bucket:
+    # 头像上传云服务器配置
+    header:
+      name: xmyheader
+      url: http://rcmsg2hwa.hb-bkt.clouddn.com
+    # 分享功能云服务器配置
+    share:
+      name: xmyshare
+      url: http://rcmscfkkw.hb-bkt.clouddn.com
+
+# caffeine本地缓存优化热门帖子
+caffeine:
+  posts:
+    # 最大缓存15页
+    max-size: 15
+    expire-seconds: 180
+
+# actuator项目监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: beans,database,info,health
