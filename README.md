@@ -2,37 +2,7 @@
 
 # 来源：https://www.nowcoder.com/courses/cover/live/246 用于个人Java练习！
 
-# 学习笔记
-
-# 前置知识：
-
-[Spring入门](https://www.wolai.com/aMYxrkeze2WdS6tAHj65PW)
-
-[SpringMVC](https://www.wolai.com/myFWZSEVSRHHHGFqvCQ3dB)
-
-[MyBatis](https://www.wolai.com/nSQSzSpZBzDuSEhC2po3br)
-
-[Thymeleaf](https://www.wolai.com/nM6Fv9eY9W9W2PSN3772pS)
-
-[项目调试技巧](https://www.wolai.com/szx32oZyCqzmERc8KYwNr4)
-
-[版本控制Git](https://www.wolai.com/um297yu1w7uBQkfqXSJXSB)
-
-[Redis入门](https://www.wolai.com/kaBpjA5Hhjv1D8PE97wveh)
-
-[Kafka入门](https://www.wolai.com/vTTahBZQjwqdATi4NzykSP)
-
-[Elasticsearch入门](https://www.wolai.com/erPnijfqCrdsRKddJoSAWZ)
-
-[SpringSecurity入门](https://www.wolai.com/XJbDcPF4W9271PcM9QEW)
-
-[线程池](https://www.wolai.com/2ahXAGKN1m5YVNvW9gXFVk)
-
-[wkhtmltopdf(网页转PDF)](https://www.wolai.com/ogmvve1bsZvCj33afLZJLZ)
-
-[部署Linux服务器](https://www.wolai.com/vfFLoRxGhRLvJus7hB4eRd)
-
-[项目总结](https://www.wolai.com/bezWMAmHH9NktiwLYzY6Md)
+# 学习笔记：
 
 # 主页讨论区**分页查询功能！**
 
