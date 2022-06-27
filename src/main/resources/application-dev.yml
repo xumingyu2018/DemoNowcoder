@@ -54,6 +54,13 @@ spring:
       enable-auto-commit: true
       # 自动提交频率
       auto-commit-interval: 3000
+  # RabbitMQ
+  rabbitmq:
+    host: localhost #ip
+    port: 5672 #端口
+    username: guest #用户名
+    password: guest #密码
+
   #ElasticsearchPropertier--Springboot版本2.1.5 9300:TCP通信
   data:
     elasticsearch:
@@ -124,3 +131,4 @@ management:
     web:
       exposure:
         include: beans,database,info,health
+

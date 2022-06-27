@@ -7,6 +7,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>DemoNowcoder</name>
     <description>DemoNowcoder</description>
+    <packaging>jar</packaging>
 
     <properties>
         <java.version>1.8</java.version>
@@ -31,11 +32,11 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
+        <!--        <dependency>-->
+        <!--            <groupId>org.projectlombok</groupId>-->
+        <!--            <artifactId>lombok</artifactId>-->
+        <!--            <optional>true</optional>-->
+        <!--        </dependency>-->
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
@@ -80,10 +81,16 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
         <!--Kafka-->
+        <!--        <dependency>-->
+        <!--            <groupId>org.springframework.kafka</groupId>-->
+        <!--            <artifactId>spring-kafka</artifactId>-->
+        <!--        </dependency>-->
+        <!--RabbitMQ-->
         <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
+
         <!--elasticsearch-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -121,6 +128,7 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
             <version>2.7.0</version>
         </dependency>
+
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
