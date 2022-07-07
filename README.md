@@ -6141,7 +6141,6 @@ public class DatabaseEndpoint {
         }
     }}
 ```
-// QQ:260602448--xumingyu
 ## 4.使用SpringSecurity设置访问权限
 
 ```java
