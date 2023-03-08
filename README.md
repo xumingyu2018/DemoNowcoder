@@ -1,16 +1,12 @@
-# 仿牛客网项目练习
+# 仿牛客网项目学习
 
-# 来源：https://www.nowcoder.com/courses/cover/live/246 用于个人Java练习！
+# 主页讨论区分页查询功能！
 
-# 学习笔记：
+## 1.首先设计Dao层接口（实体类略）
 
-# 主页讨论区**分页查询功能！**
+**以下是查询功能不包括分页** **（其中userId在DiscussPost类中作为外键）**
 
-  ## 1.首先设计Dao层接口（实体类略）
-
-    **以下是查询功能****不包括分页****（其中userId在DiscussPost类中作为外键）**
-
-```Java
+```java
 //查询
 //userId=0为所有帖子，1为我的帖子
 //每个参数必须加@Param("")
@@ -21,9 +17,47 @@ List<DiscussPost> selectDiscussPosts(@Param("userId") int userId,@Param("offset"
 int selectDiscussRows(@Param("userId")int userId);
 ```
 
-  ## 2.然后设计Service层调用Dao层接口
+```sql
+  <!------------- Mapper.xml ------------->
+  <sql id="selectFields">
+      id,user_id,title,content,type,status,create_time,comment_count,score
+  </sql>
+  <sql id="insertFields">
+      user_id,title,content,type,status,create_time,comment_count,score
+  </sql>
 
-```Java
+  <!--查询不是被拉黑的帖子并且userId不为0按照type指定，时间排序-->
+  <select id="selectDiscussPosts" resultType="DiscussPost">
+      select <include refid="selectFields"></include>
+      from discuss_post
+      where status!=2
+      <if test="userId!=0">
+          and user_id=#{userId}
+      </if>
+      <if test="orderMode==0">
+          order by type desc,create_time desc
+      </if>
+      <if test="orderMode==1">
+          order by type desc,score desc,create_time desc
+      </if>
+      limit #{offset},#{limit}
+  </select>
+
+  <!--userId=0查所有;userId!=0查个人发帖数-->
+  <select id="selectDiscussRows" resultType="int">
+      select count(id)
+      from discuss_post
+      where status!=2
+      <if test="userId!=0">
+          and user_id=#{userId}
+      </if>
+  </select>
+
+```
+
+## 2.然后设计Service层调用Dao层接口
+
+```java
   @Autowired
   private DiscussPostMapper discussPostMapper;
   
@@ -36,11 +70,11 @@ int selectDiscussRows(@Param("userId")int userId);
   }
 ```
 
-  ## 3.其次封装分页功能
+## 3.其次封装分页功能
 
-    **封装分页功能相关信息在Page类！！**
+**封装分页功能相关信息在Page类！！**
 
-```Java
+```java
 public class Page {
 
     //当前页面
@@ -90,16 +124,14 @@ public class Page {
     public void setPath(String path) {
         this.path = path;
     }
-    /**
-     * 获取当前页的起始行
-     **/
+    
+    /** 获取当前页的起始行**/
     public int getOffset(){
         //current*limit-limit
         return (current-1)*limit;
     }
-    /**
-     * 获取总页数
-     **/
+    
+    /**获取总页数**/
     public int getTotal(){
         //rows/limit[+1]
         if (rows%limit==0){
@@ -108,16 +140,14 @@ public class Page {
             return rows/limit+1;
         }
     }
-    /**
-     * 获取起始页码
-     **/
+    
+    /**获取起始页码**/
     public int getFrom(){
         int from=current-2;
         return from < 1 ? 1 : from;
     }
-    /**
-     * 获取结束页码
-     **/
+    
+    /**获取结束页码**/
     public int getTo(){
         int to=current+2;
         int total=getTotal();
@@ -126,9 +156,9 @@ public class Page {
 }
 ```
 
-  ## 4.最后设计Controller层
+## 4.最后设计Controller层
 
-```Java
+```java
     @Autowired
     private DiscussPostService discussPostService;
 
@@ -138,7 +168,7 @@ public class Page {
     @RequestMapping(value = "/index",method = RequestMethod.GET)
     public String getIndexPage(Model model, Page page){//传入model参数是因为要返回值给View
         /*方法调用前，springMVC自动实例化Model和Page,并将Page注入Model
-          在thymeleaf中可以直接访问Page对象中的数据*/
+          在thymeleaf中可以直接访问Page对象中的数据 */
         
         //分页
         page.setRows(discussPostService.findDiscussPostRows(0));
@@ -148,7 +178,7 @@ public class Page {
         List<DiscussPost> list=discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit());
         
         /*将查询的post帖子和user用户名拼接后放入map中,最后把全部map放入新的List中,
-          因为UserId是外键，需要显示的是对应的名字即可*/
+          因为UserId是外键，需要显示的是对应的名字即可 */
         List<Map<String,Object>> discussPost =new ArrayList<>();
 
         if (list!=null){
@@ -160,7 +190,7 @@ public class Page {
                 User user = userService.findUser(post.getUserId());
                 // 将发帖子的所有用户放入map
                 map.put("user",user);
-                **// 显示帖子点赞数量**
+                // 显示帖子点赞数量
                 long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, post.getId());
                 map.put("likeCount", likeCount);
                 
@@ -173,28 +203,28 @@ public class Page {
     }
 ```
 
-  ## 5.前端页面设计（Thymeleaf）
+## 5.前端页面设计（Thymeleaf）
 
-    ### 5.1查询页面
+### 5.1查询页面
 
-```HTML
-  **<!-- 帖子列表 -->**
+```html
+  <!-- 帖子列表 -->
   <ul class="list-unstyled">
-  <!--**th:each**="map:${discussPosts}循环遍历model.addAttribute传过来的discussPosts这个集合，每次循环得到map对象-->
+  <!--th:each="map:${discussPosts}循环遍历model.addAttribute传过来的discussPosts这个集合，每次循环得到map对象-->
     <li class="media pb-3 pt-3 mb-3 border-bottom" th:each="map:${discussPosts}">
       <a href="site/profile.html">
-  <!--**th:src**="${map.user.headerUrl}"底层是map.get("user")->user.get("headerUrl")-->
+  <!--th:src="${map.user.headerUrl}"底层是map.get("user")->user.get("headerUrl")-->
         <img th:src="${map.user.headerUrl}" class="mr-4 rounded-circle" alt="用户头像" style="width:50px;height:50px;">
       </a>
       <div class="media-body">
         <h6 class="mt-0 mb-3">
-  <!--**th:utext**可以转义文本中特殊字符-->
+  <!--th:utext可以转义文本中特殊字符-->
           <a href="#" th:utext="${map.post.title}">备战春招，面试刷题跟他复习，一个月全搞定！</a>
           <span class="badge badge-secondary bg-primary" th:if="${map.post.type==1}">置顶</span>
           <span class="badge badge-secondary bg-danger" th:if="${map.post.status==1}">精华</span>
         </h6>
         <div class="text-muted font-size-12">
-  <!--**th:text**="${#dates.format(map.post.createTime)} #是引用thymeleaf自带的工具-->
+  <!--th:text="${#dates.format(map.post.createTime)} #是引用thymeleaf自带的工具-->
           <u class="mr-3" th:utext="${map.user.username}">寒江雪</u> 发布于 <b th:text="${#dates.format(map.post.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-15 15:32:18</b>
           <ul class="d-inline float-right">
             <li class="d-inline ml-2">赞 11</li>
@@ -207,21 +237,21 @@ public class Page {
   </ul>
 ```
 
-    ### 5.2分页功能页面
+### 5.2分页功能页面
 
-```HTML
-  **<!-- 分页 -->**
+```html
+  <!-- 分页 -->
   <nav class="mt-5" th:if="${page.rows>0}" th:fragment="pagination">
     <ul class="pagination justify-content-center">
       <li class="page-item">
-  <!--**th:href**="@{${page.path}(current=1,limit=5)}"等效于/index?current=1&limit=5-->
+  <!--th:href="@{${page.path}(current=1,limit=5)}"等效于/index?current=1&limit=5-->
         <a class="page-link" th:href="@{${page.path}(current=1)}">首页</a>
       </li>
-  <!--**th:class**="|page-item ${page.current==1?'disabled':''}|" 动态上一页禁用  固定数据+变量使用方法:加|| -->
+  <!--th:class="|page-item ${page.current==1?'disabled':''}|" 动态上一页禁用  固定数据+变量使用方法:加|| -->
       <li th:class="|page-item ${page.current==1?'disabled':''}|">
         <a class="page-link" th:href="@{${page.path}(current=${page.current-1})}">上一页</a>
       </li>
-  <!--**#numbers.sequence** #调用thymelead自带工具numbers,从from到to的数组-->
+  <!--#numbers.sequence #调用thymelead自带工具numbers,从from到to的数组-->
       <li th:class="|page-item ${i==page.current?'active':''}|" th:each="i:${#numbers.sequence(page.from,page.to)}">
         <a class="page-link" href="#" th:text="${i}">1</a>
       </li>
@@ -238,15 +268,15 @@ public class Page {
 
 # 注册登录功能
 
-  ## 发送邮件
+## 发送邮件
 
-    ### 1.邮箱设置：启用SMTP服务
+### 1.邮箱设置：启用SMTP服务
 
-    ### 2.SpringEmail
+### 2.SpringEmail
 
-      #### 2.1配置xml文件
+#### 2.1配置xml文件
 
-```XML
+```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-mail</artifactId>
@@ -255,22 +285,22 @@ public class Page {
 
 ```
 
-      #### 2.2在application.yml配置邮箱参数
+#### 2.2在application.yml配置邮箱参数
 
-```YAML
+```yaml
 #  配置邮箱
 spring:
   mail:
     host: smtp.qq.com
     port: 465
-    username: xxx@qq.com //本网站的发送方ssssssss
+    username: xxx@qq.com //本网站的发送方
     password: xxx  //密码为生成授权码后给的密码
     protocol: smtps
 ```
 
-      #### 2.3创建MailClient邮箱工具类
+#### 2.3创建MailClient邮箱工具类
 
-```Java
+```java
 @Component
 public class MailClient {
 
@@ -302,9 +332,9 @@ public class MailClient {
 }
 ```
 
-      #### 2.4测试类
+#### 2.4测试类
 
-```Java
+````java
 @Autowired
 private MailClient mailClient;
 
@@ -323,33 +353,38 @@ public void testHTMLMail(){//发送thymeleaf html类型文件
     String content = templateEngine.process("/mail/activation", context);
     mailClient.sendMail("xmy981022@163.com","HTML",content);
 }
-```
 
-      **注意**：**JavaMailSender和TemplateEngine会被自动注入到spring中**
 
-  ## 注册功能
+注意：JavaMailSender和TemplateEngine会被自动注入到spring中
 
-    ### 1.配置application.properties文件
+````
 
-```.properties
+## 注册功能
+
+
+### 1.配置application.properties文件
+
+
+````yml
 community.path.domain: http://localhost:8080
 server.servlet.context-path: /community
-```
+````
 
-    ### 2.创建工具类（处理MD5加密、生成随机数、激活标志接口）
+### 2.创建工具类（处理MD5加密、生成随机数、激活标志接口）
 
-```Java
+```java
 public class CommunityUtil {
-    /*生成随机字符串
+    /*
+    * 生成随机字符串
     * 用于邮件激活码，salt5位随机数加密
-    * */
+    **/
     public static String generateUUID(){
         return UUID.randomUUID().toString().replaceAll("-","");
     }
-    /*MD5加密
-    *hello-->abc123def456
-    *hello + 3e4a8-->abc123def456abc
-     */
+    /* MD5加密
+    * hello-->abc123def456
+    * hello + 3e4a8-->abc123def456abc
+    */
     public static String md5(String key){
         if (StringUtils.isBlank(key)){
             return null;
@@ -361,18 +396,18 @@ public class CommunityUtil {
 }
 ```
 
-```Java
+```java
 public interface CommuityConstant {
     /*      以下用于注册功能      */
     /** 激活成功*/
     int ACTIVATION_SUCCESS=0;
-    /** 重复激活*/
+    /** 重复激活 */
     int ACTIVATION_REPEAT=1;
-    /** 激活失败*/
+    /** 激活失败 */
     int ACTIVATION_FAILURE=2;
     
-    /*      以下用于登录功能      */
-    /**
+    /*      以下用于登录功能*      /
+    /**  
      * 默认状态的登录凭证的超时时间
      */
     int DEFAULT_EXPIRED_SECONDS=3600*12;
@@ -383,18 +418,18 @@ public interface CommuityConstant {
 }
 ```
 
-    ### 3.编写Service业务层(实现CommuityConstant接口)
+### 3.编写Service业务层(实现CommuityConstant接口)
 
-      #### 3.1注册业务
+#### 3.1注册业务
 
-```Java
+```java
 //..注入userMapper，mailClient，templateEngine
 @Value("${community.path.domain}")
 private String domain;
 @Value("${server.servlet.context-path}")
 private String contextPath;
 //注册功能
-/**为什么返回的是Map类型，因为用Map来存各种情况下的信息，返回给前端页面**/
+/**为什么返回的是Map类型，因为用Map来存各种情况下的信息，返回给前端页面* */
 public Map<String,Object> register(User user){
     HashMap<String, Object> map = new HashMap<>();
     /*
@@ -462,10 +497,10 @@ public Map<String,Object> register(User user){
 }
 ```
 
-    ####    3.2激活邮件业务
+#### &#x20;  3.2激活邮件业务
 
-```Java
-/**激活邮件功能**/
+```java
+/**激活邮件功能* */
   public int activation(int userId,String code){
       User user = userMapper.selectById(userId);
       if (user.getStatus()==1){
@@ -479,9 +514,9 @@ public Map<String,Object> register(User user){
   }
 ```
 
-    ### 4.编写Controller层
+### 4.编写Controller层
 
-```Java
+```java
 //注册Controller
 @RequestMapping(value = "/register",method = RequestMethod.POST)
 public String register(Model model, User user){
@@ -499,7 +534,7 @@ public String register(Model model, User user){
 }
 ```
 
-```Java
+```java
 /**激活邮件Controller**/
 //http://localhost:8080/community/activation/101/code激活链接
 @RequestMapping(value = "/activation/{userId}/{code}",method = RequestMethod.GET)
@@ -519,10 +554,10 @@ public String activation(Model model, @PathVariable("userId") int userId,@PathVa
 }
 ```
 
-    ### 5.编写前端Thymeleaf页面核心点
+### 5.编写前端Thymeleaf页面核心点
 
-```HTML
-/**注册页面*/
+```html
+/**注册页面 */
 <form class="mt-5" method="post" th:action="@{/register}">
   <div class="col-sm-10">
     <input type="text"
@@ -536,7 +571,7 @@ public String activation(Model model, @PathVariable("userId") int userId,@PathVa
   </div>
 </form>
 
-/**账号激活中间页**/
+/**账号激活中间页* */
 <div class="jumbotron">
   <p class="lead" th:text="${msg}">激活状态信息</p>
   <p>
@@ -557,7 +592,7 @@ public String activation(Model model, @PathVariable("userId") int userId,@PathVa
   });
 </script>
 
-/**邮箱模板页**/
+/**邮箱模板页* */
 <div>
   <p><b th:text="${email}">xxx@xxx.com</b>, 您好!</p>
   <p>
@@ -568,17 +603,17 @@ public String activation(Model model, @PathVariable("userId") int userId,@PathVa
 </div>
 ```
 
-  ## 生成验证码
+## 生成验证码
 
-    **参考网站**：[http://code.google.com/archive/p/kaptcha/](http://code.google.com/archive/p/kaptcha/)
+参考网站 ：[http://code.google.com/archive/p/kaptcha/](http://code.google.com/archive/p/kaptcha/ "http://code.google.com/archive/p/kaptcha/")
 
-    **注意：1.**Producer是Kaptcha的核心接口   **2.**DefaultKaptcha是Kaptcha核心接口的默认实现类
+注意：1.Producer是Kaptcha的核心接口   2.DefaultKaptcha是Kaptcha核心接口的默认实现类
 
-            **3.**Spring Boot没有为Kaptcha提供自动配置
+&#x20;     3.Spring Boot没有为Kaptcha提供自动配置
 
-    ### 1.引入pom.xml
+### 1.引入pom.xml
 
-```XML
+```xml
 <dependency>
     <groupId>com.github.penggle</groupId>
     <artifactId>kaptcha</artifactId>
@@ -587,15 +622,15 @@ public String activation(Model model, @PathVariable("userId") int userId,@PathVa
 
 ```
 
-    ### 2.创建配置类装配第三方bean
+### 2.创建配置类装配第三方bean
 
-```Java
+```java
 @Configuration
 public class KaptchaConfig {
     @Bean
     public Producer KaptchaProducer(){
-        /**
-         * 手动创建properties.xml配置文件对象
+        /**         
+         * 手动创建properties.xml配置文件对象*         
          * 设置验证码图片的样式，大小，高度，边框，字体等
          */
         Properties properties=new Properties();
@@ -618,9 +653,9 @@ public class KaptchaConfig {
 }
 ```
 
-    ### 3.编写Controller接口
+### 3.编写Controller接口
 
-```Java
+```java
 @RequestMapping(value = "/kaptcha",method = RequestMethod.GET)
 public void getKaptcha(HttpServletResponse response, HttpSession session){
     //生成验证码
@@ -639,9 +674,9 @@ public void getKaptcha(HttpServletResponse response, HttpSession session){
 }
 ```
 
-    ### 4.Thymeleaf前端页面核心点
+### 4.Thymeleaf前端页面核心点
 
-```HTML
+```html
 <div class="col-sm-4">
   <img th:src="@{/kaptcha}" id="kaptchaImage" style="width:100px;height:40px;" class="mr-2"/>
   <a href="javascript:refresh_kaptcha();" class="font-size-12 align-bottom">刷新验证码</a>
@@ -657,17 +692,17 @@ public void getKaptcha(HttpServletResponse response, HttpSession session){
 var CONTEXT_PATH="/community";
 ```
 
-  ## 登录功能
+## 登录功能
 
-    **验证账号,密码,验证码（成功：生成登录凭证ticket，发放给客户端  失败：跳转回登录页 ）**
+验证账号,密码,验证码（成功：生成登录凭证ticket，发放给客户端  失败：跳转回登录页 ）
 
-    ### 1.创建登录凭证实体类（登录凭证相当于Session的作用）
+### 1.创建登录凭证实体类（登录凭证相当于Session的作用）
 
-    **注意**:**为什么要搞一个登录凭证，因为最好不要将User信息存入Model返回给前端，敏感信息尽量不要返回给浏览器，不安全，而是选择ticket凭证，通过ticket可以在服务器端得到User**
+注意 :**为什么要搞一个登录凭证，因为最好不要将User信息存入Model返回给前端，敏感信息尽量不要返回给浏览器，不安全，而是选择ticket凭证，通过ticket可以在服务器端得到User**
 
-    ### 2.编写Dao层接口(注解方式实现)
+### 2.编写Dao层接口(注解方式实现)
 
-```Java
+```java
   @Insert({
           "insert into login_ticket(user_id,ticket,status,expired) ",
           "values (#{userId},#{ticket},#{status},#{expired})"
@@ -685,9 +720,9 @@ var CONTEXT_PATH="/community";
   LoginTicket selectByTicket(String ticket);
   
   /**
-   * 一定要加@Param()不然会报错
-   * 退出功能需要修改status状态
-   * @return error:com.mysql.jdbc.MysqlDataTruncation:Data truncation:Truncated incorrect DOUBLE value:...
+   *  一定要加@Param()不然会报错
+   *  退出功能需要修改status状态
+   *  @return error:com.mysql.jdbc.MysqlDataTruncation:Data truncation:Truncated incorrect DOUBLE value:...
    */
   @Update({
           "update login_ticket set status=#{status} where ticket=#{ticket} "
@@ -695,9 +730,9 @@ var CONTEXT_PATH="/community";
   int updateStatus(@Param("ticket") String ticket, @Param("status") int status);
 ```
 
-    ### 3.编写Service层登录业务
+### 3.编写Service层登录业务
 
-```Java
+```java
   /**登录功能**/
   public Map<String,Object> login(String username,String password,int expiredSeconds){
       HashMap<String, Object> map = new HashMap<>();
@@ -742,22 +777,22 @@ var CONTEXT_PATH="/community";
   }
 ```
 
-    ### 4.编写Controller层
+### 4.编写Controller层
 
-```Java
-   /***
-     * 登录功能
-     * @param username
-     * @param password
-     * @param code 用于校验验证码
-     * @param rememberme  记住我（登录凭证）
-     * @param model 用于将数据传递给前端页面
-     * @param session 用于获取kaptcha验证码
-     * @param response 用于浏览器接受cookie
-     * @return
-     */
+```java
+   /**
+    * 登录功能
+    * @param username
+    * @param password
+    * @param code 用于校验验证码
+    * @param rememberme  记住我（登录凭证）
+    * @param model 用于将数据传递给前端页面
+    * @param session 用于获取kaptcha验证码
+    * @param response 用于浏览器接受cookie
+    * @return
+    */
     @RequestMapping(value = "/login",method = RequestMethod.POST)
-    /**注意username,password这些没有封装进model**/
+    /**注意username,password这些没有封装进model* */
     public String login(String username, String password, String code, boolean rememberme,
                         Model model, HttpSession session,HttpServletResponse response){
         //首先检验验证码
@@ -786,9 +821,9 @@ var CONTEXT_PATH="/community";
     }
 ```
 
-    ### 5.编写前端Thymeleaf页面核心点
+### 5.编写前端Thymeleaf页面核心点
 
-```HTML
+```html
 <div class="col-sm-10">
   <input type="text"
        th:class="|form-control ${usernameMsg!=null?'is-invalid':''}|"
@@ -807,24 +842,24 @@ var CONTEXT_PATH="/community";
 </div>
 ```
 
-  ## 退出登录功能
+## 退出登录功能
 
-    **将登录凭证loginTicket中的status置为无效**
+将登录凭证loginTicket中的status置为无效
 
-    ### 1.编写Service层
+### 1.编写Service层
 
-```Java
+```java
 public void logout(String ticket){
     loginTicketMapper.updateStatus(ticket,1);//来源于LoginTicket的Dao层
 }
 ```
 
-    ### 2.编写Controller层
+### 2.编写Controller层
 
-```Java
+```java
   /**
    * 退出登录功能
-   * @CookieValue()注解:将浏览器中的Cookie值传给参数
+   * @CookieValue()注解:将浏览器中的Cookie值传给参数 
    */
   @RequestMapping(value = "/logout",method = RequestMethod.GET)
   public String logout(@CookieValue("ticket") String ticket){
@@ -833,25 +868,30 @@ public void logout(String ticket){
   }
 ```
 
-  ## 显示登录信息
+## 显示登录信息
 
-    **涉及到****：拦截器，多线程**
+涉及到 ：****拦截器，多线程****
 
-    ![](https://secure2.wostatic.cn/static/69u94ge6Zr6hum9pQDuJuC/1.PNG)
+![](image/1_b7J4nGtYHK.PNG)
 
-    ### 拦截器Demo示例
+### 拦截器Demo示例
 
-      **注意：****1.**拦截器需实现HandlerInterceptor接口而配置类需实现WebMvcConfigurer接口。  **2.**preHandle方法在Controller之前执行，若返回false，则终止执行后续的请求。
+注意：
 
-      **3.**postHandle方法在Controller之后、模板页面之前执行。
+       1. 拦截器需实现HandlerInterceptor接口而配置类需实现WebMvcConfigurer接口。
 
-      **4.**afterCompletion方法在模板之后执行。
+       2. preHandle方法在Controller之前执行，若返回false，则终止执行后续的请求。
 
-      **5.**通过addInterceptors方法对拦截器进行配置
+       3. postHandle方法在Controller之后、模板页面之前执行。
 
-      **1.创建拦截器类，实现****HandlerInterceptor****接口**
+       4. afterCompletion方法在模板之后执行。
 
-```Java
+       5. 通过addInterceptors方法对拦截器进行配置
+
+
+**1.创建拦截器类，实现****HandlerInterceptor****接口**
+
+```java
 @Component
 public class DemoInterceptor implements HandlerInterceptor {
     @Override
@@ -870,9 +910,9 @@ public class DemoInterceptor implements HandlerInterceptor {
 }
 ```
 
-      **2.创建拦截器配置类，实现****WebMvcConfigurer****接口**
+**2.创建拦截器配置类，实现****WebMvcConfigurer****接口**
 
-```Java
+```java
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
@@ -880,20 +920,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(demoInterceptor)
-                .excludePathPatterns("/**/*.css","/**/*.js","/**/*.png","/**/*.jpg","/**/*.jpeg")
+                .excludePathPatterns("/ **/ *.css","/* */*.js","/**/ *.png","/* */*.jpg","/ **/ *.jpeg")
                 .addPathPatterns("/register","/login");
 }
 ```
 
-    ### 1.首先创建两个工具类降低耦合（Request获取Cookie工具类，获取凭证ticket多线程工具类）
+### 1.首先创建两个工具类降低耦合（Request获取Cookie工具类，获取凭证ticket多线程工具类）
 
-    **注意：****1.ThreadLocal采用****线程隔离****的方式存放数据，可以避免多线程之间出现数据访问冲突。**
+注意：1.ThreadLocal采用**线程隔离**的方式存放数据，可以避免多线程之间出现数据访问冲突。
 
-    **2.ThreadLocal提供****set****方法，能够以当前线程为key存放数据。****get****方法，能够以当前线程为key获取数据。**
+2.ThreadLocal提供**set**方法，能够以当前线程为key存放数据。**get**方法，能够以当前线程为key获取数据。
 
-    **3.ThreadLocal提供****remove****方法，能够以当前线程为key删除数据。**
+3.ThreadLocal提供**remove**方法，能够以当前线程为key删除数据。
 
-```Java
+```java
 public class CookieUtil {
     public static String getValue(HttpServletRequest request,String name){
         if (request==null||name==null){
@@ -912,38 +952,38 @@ public class CookieUtil {
 }
 ```
 
-```Java
+```java
 @Component  //放入容器里不用设为静态方法
 public class HostHolder {
 //key就是线程对象，值为线程的变量副本
     private ThreadLocal<User> users = new ThreadLocal<>();
-    /**以线程为key存入User**/
+    /**以线程为key存入User* */
     public void setUser(User user){
         users.set(user);
     }
-    /**从ThreadLocal线程中取出User**/
+    /**从ThreadLocal线程中取出User* */
     public User getUser(){
         return users.get();
     }
-    /**释放线程**/
+    /**释放线程* */
     public void clear(){
         users.remove();
     }
 }
 ```
 
-    ### 2.编写Service层
+### 2.编写Service层
 
-```Java
-/**通过Cookie=ticket获取登录用户**/
+```java
+/**通过Cookie=ticket获取登录用户* */
 public LoginTicket getLoginTicket(String ticket){
     return loginTicketMapper.selectByTicket(ticket);
 }
 ```
 
-    ### 3.创建登录凭证拦截器类（等同于Controller类）
+### 3.创建登录凭证拦截器类（等同于Controller类）
 
-```Java
+```java
 @Component
 public class LoginTicketInterceptor implements HandlerInterceptor {
 
@@ -953,9 +993,9 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
     private HostHolder hostHolder;
 
     @Override
-    /**在Controller访问所有路径之前获取凭证**/
+    /**在Controller访问所有路径之前获取凭证* */
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        /**从浏览器Cookie中获取凭证**/
+        /**从浏览器Cookie中获取凭证* */
         String ticket=CookieUtil.getValue(request,"ticket");
 
         if (ticket!=null){
@@ -974,7 +1014,7 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
         return true;
     }
     @Override
-    /**模板之前处理数据**/
+    /**模板之前处理数据* */
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         User user = hostHolder.getUser();
         if (user!=null && modelAndView !=null){
@@ -989,9 +1029,9 @@ public class LoginTicketInterceptor implements HandlerInterceptor {
 }
 ```
 
-    ### 4.编写拦截器配置类
+### 4.编写拦截器配置类
 
-```Java
+```java
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
@@ -999,29 +1039,29 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(loginTicketInterceptor)
-                .excludePathPatterns("/**/*.css","/**/*.js","/**/*.png","/**/*.jpg","/**/*.jpeg");
+                .excludePathPatterns("/* */*.css","/**/ *.js","/* */*.png","/ **/ *.jpg","/* */*.jpeg");
     }}
 ```
 
-    ### 5.前端页面核心点修改
+### 5.前端页面核心点修改
 
-    **th:if="${loginUser!=null}"****—>存在凭证显示<li>,不存在则不显示**
+th:if="\${loginUser!=null}" **存在凭证显示\<li>,不存在则不显示**
 
-```HTML
+```html
 <li class="nav-item ml-3 btn-group-vertical" th:if="${loginUser!=null}">
   <a class="nav-link position-relative" href="site/letter.html">消息<span class="badge badge-danger">12</span></a>
 </li>
 ```
 
-  ## 拦截未登录页面的路径访问(自定义拦截器注解)
+## 拦截未登录页面的路径访问(自定义拦截器注解)
 
-    **常用的元注解：****@Target：注解作用目标（方法or类）   @Retention：注解作用时间（运行时or编译时） @Document：注解是否可以生成到文档里  @Inherited**：**注解继承该类的子类将自动使用@Inherited修饰**
+常用的元注解： **@Target：注解作用目标（方法or类）   @Retention：注解作用时间（运行时or编译时） @Document：注解是否可以生成到文档里  @Inherited**：**注解继承该类的子类将自动使用@Inherited修饰**
 
-    **注意：****若有2个拦截器，拦截器执行顺序为注册在WebMvcConfig配置类中的顺序**
+ 注意： **若有2个拦截器，拦截器执行顺序为注册在WebMvcConfig配置类中的顺序**
 
-    ### 1.自定义拦截方法类注解(annotation包)并加在需要拦截的方法上
+### 1.自定义拦截方法类注解(annotation包)并加在需要拦截的方法上
 
-```Java
+```java
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 /**
@@ -1033,15 +1073,15 @@ public @interface LoginRequired {
 @LoginRequired
 ```
 
-    ### 2.编写拦截器类实现HandlerInterceptor父类
+### 2.编写拦截器类实现HandlerInterceptor父类
 
-```Java
+```java
   @Autowired
   //注入hostHolder工具类获取当前状态登录用户
   private HostHolder hostHolder;
   
   @Override
-  /**在请求路径前执行该方法**/
+  /**在请求路径前执行该方法* */
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
       //判断拦截的目标是不是一个方法
       if (handler instanceof HandlerMethod){
@@ -1050,10 +1090,10 @@ public @interface LoginRequired {
           Method method = handlerMethod.getMethod();
           //获取方法上的自定义注解
           LoginRequired loginRequired = method.getAnnotation(LoginRequired.class);
-          /**
-           * 如果没有登录并且有自定义注解（需要登录才能访问的方法注解）
-           * 通过response来重定向，这里不可以通过return 重定向
-           */
+         /**
+          * 如果没有登录并且有自定义注解（需要登录才能访问的方法注解）
+          * 通过response来重定向，这里不可以通过return 重定向
+          */
           if (hostHolder.getUser()==null&&loginRequired!=null){
               response.sendRedirect(request.getContextPath() + "/login");
               return false;
@@ -1063,30 +1103,24 @@ public @interface LoginRequired {
   }
 ```
 
-    ### 3.注册进拦截器配置类WebMvcConfig
+### 3.注册进拦截器配置类WebMvcConfig
 
-```Java
+```java
   @Autowired
   private LoginRequiredInterceptor loginRequiredInterceptor;
   
    @Override
   public void addInterceptors(InterceptorRegistry registry) {
       registry.addInterceptor(loginRequiredInterceptor)
-              .excludePathPatterns("/**/*.css","/**/*.js","/**/*.png","/**/*.jpg","/**/*.jpeg");
+              .excludePathPatterns("/* */*.css","/**/ *.js","/* */*.png","/ **/ *.jpg","/* */*.jpeg");
   }
 ```
 
-    
+## 修改密码
 
-    
+### 1.编写Dao层
 
-    
-
-  ## 修改密码
-
-    ### 1.编写Dao层
-
-```Java
+```java
 int updatePassword(@Param("id") int id,@Param("password")String password);
 <update id="updatePassword">
     update user set password=#{password} where id=#{id}
@@ -1094,9 +1128,9 @@ int updatePassword(@Param("id") int id,@Param("password")String password);
 
 ```
 
-    ### 2.编写Service层
+### 2.编写Service层
 
-```Java
+```java
   /**修改密码**/
   public Map<String,Object> updatePassword(int userId,String oldPassword,String newPassword){
       HashMap<String, Object> map = new HashMap<>();
@@ -1126,16 +1160,16 @@ int updatePassword(@Param("id") int id,@Param("password")String password);
   }
 ```
 
-    ### 3.编写Controller层
+### 3.编写Controller层
 
-```Java
-  /**修改密码**/
+```java
+  /**修改密码 **/
   @RequestMapping(value = "/updatePassword",method = RequestMethod.POST)
   public String updatePassword(String oldPassword, String newPassword, Model model){
       User user = hostHolder.getUser();
       Map<String, Object> map = userService.updatePassword(user.getId(), oldPassword, newPassword);
       if (map == null || map.isEmpty()){
-          /**如果更改密码成功，退出登录，并跳到登录页面**/
+          /**如果更改密码成功，退出登录，并跳到登录页面 **/
           return "redirect:/logout";
       }else{
           model.addAttribute("oldPasswordMsg",map.get("oldPasswordMsg"));
@@ -1145,33 +1179,164 @@ int updatePassword(@Param("id") int id,@Param("password")String password);
   }
 ```
 
-    ## 忘记密码
+## 忘记密码
 
-      ### 
+### 1.编写Service层
+
+```Java
+    // 判断邮箱是否已注册
+    public boolean isEmailExist(String email) {
+        User user = userMapper.selectByEmail(email);
+        return user != null;
+    }
+    
+     /**
+      * 重置忘记密码
+      */
+    public Map<String, Object> resetPassword(String email, String password) {
+        HashMap<String, Object> map = new HashMap<>();
+
+        //空值处理
+        if (StringUtils.isBlank(email)) {
+            map.put("emailMsg", "邮箱不能为空！");
+            return map;
+        }
+        if (StringUtils.isBlank(password)) {
+            map.put("passwordMsg", "密码不能为空！");
+            return map;
+        }
+
+        //根据邮箱查找用户
+        User user = userMapper.selectByEmail(email);
+        if (user == null) {
+            map.put("emailMsg", "该邮箱尚未注册!");
+            return map;
+        }
+
+        //重置密码
+        password = CommunityUtil.md5(password + user.getSalt());
+        userMapper.updatePassword(user.getId(), password);
+        // 清理缓存
+        clearCache(user.getId());
+
+        //注意这里！
+        map.put("user", user);
+
+        return map;
+    }
+```
+
+### 2.编写Controller层
+
+```Java
+    /**
+     * 忘记密码页面
+     */
+    @RequestMapping(path = "/forget", method = RequestMethod.GET)
+    public String getForgetPage() {
+        return "/site/forget";
+    }
+    
+    /**
+     * 重置密码
+     */
+    @RequestMapping(path = "/forget/password", method = RequestMethod.POST)
+    public String resetPassword(String email, String verifyCode, String password, Model model, HttpSession session) {
+        String code = (String) session.getAttribute(email + "_verifyCode");
+
+        if (StringUtils.isBlank(verifyCode) || StringUtils.isBlank(code) || !code.equalsIgnoreCase(verifyCode)) {
+            model.addAttribute("codeMsg", "验证码错误!");
+            return "/site/forget";
+        }
+
+        Map<String, Object> map = userService.resetPassword(email, password);
+        if (map.containsKey("user")) {
+            return "redirect:/login";
+        } else {
+            model.addAttribute("emailMsg", map.get("emailMsg"));
+            model.addAttribute("passwordMsg", map.get("passwordMsg"));
+            return "/site/forget";
+        }
+    }    
+```
+
+### 3.编写前端核心部分
+
+```HTML
+  <form method="post" th:action="@{/forget/password}">
+      <div>
+          <label class="col-sm-2" for="your-email">邮箱:</label>
+          <div>
+              <input id="your-email" name="email" placeholder="请输入您的邮箱!" required
+                     th:class="|form-control ${emailMsg!=null?'is-invalid':''}|" th:value="${param.email}"
+                     type="email">
+              <div th:text="${emailMsg}">
+              <input **id="your-email" name="email" placeholder="请输入您的邮箱!" required
+                     th:class="|form-control ${emailMsg!=null?'is-invalid':''}|" th:value="${param.email}"
+                     type="email">**
+              <div **th:text="${emailMsg}"**>
+                  该邮箱已被注册!
+              </div>
+          </div>
+      </div>
+      <div >
+          <label class="col-sm-2" for="verifycode">验证码:</label>
+          <div>
+              <input id="verifycode" name="verifyCode" placeholder="请输入验证码!"
+                     th:class="|form-control ${codeMsg!=null?'is-invalid':''}|" th:value="${param.verifyCode}"
+                     type="text">
+              <input **id="verifycode" name="verifyCode" placeholder="请输入验证码!"
+                     th:class="|form-control ${codeMsg!=null?'is-invalid':''}|" th:value="${param.verifyCode}"
+                     type="text">**
+              <div th:text="${codeMsg}">
+                  验证码不正确!
+              </div>
+          </div>
+          <div>
+              <a class="btn" id="verifyCodeBtn">获取验证码</a>
+          </div>
+      </div>
+      <div>
+          <label class="col-sm-2" for="your-password">新密码:</label>
+          <div class="col-sm-10">
+              <input id="your-password" name="password" placeholder="请输入新的密码!" required
+                     th:class="|form-control ${passwordMsg!=null?'is-invalid':''}|"
+                     th:value="${param.password}" type="password">
+              <input **id="your-password" name="password" placeholder="请输入新的密码!" required
+                     th:class="|form-control ${passwordMsg!=null?'is-invalid':''}|"
+                     th:value="${param.password}" type="password">**
+              <div class="invalid-feedback" th:text="${passwordMsg}">
+                  密码长度不能小于8位!
+              </div>
+          </div>
+      </div>
+      <button type="submit" class="btn">重置密码</button>
+  </form>
+```
 
 # 优化登录功能(使用Redis)
 
-  ## 使用Redis存储验证码
+## 使用Redis存储验证码
 
-    ### 1.编写RedisUtil工具类设置验证码key值
+### 1.编写RedisUtil工具类设置验证码key值
 
-```Java
+```java
 public class RedisKeyUtil {
     // 验证码
     private static final String PREFIX_KAPTCHA = "kaptcha";
-    /** 登录验证码 **/
-    public static String getKaptchaKey(String **owner**) {
-        return **PREFIX_KAPTCHA + SPLIT + owner**;
+    /**登录验证码**/
+    public static String getKaptchaKey(String owner) {
+        return PREFIX_KAPTCHA + SPLIT + owner;
     }
 }
 ```
 
-    ### 2.优化LoginController验证码相关代码（优化前是存在session中的）
+### 2.优化LoginController验证码相关代码（优化前是存在session中的）
 
-```Java
+```java
     @Autowired
     private RedisTemplate redisTemplate;
-    /***
+    /**
      * 验证码功能 (Redis优化)
      * @param response
      */
@@ -1180,18 +1345,18 @@ public class RedisKeyUtil {
         //生成验证码
         String text = kaptchaProducer.createText();
         BufferedImage image = kaptchaProducer.createImage(text);
-        **//优化前：将验证码存入session.....**
+        //优化前：将验证码存入session.....
 
-**        //优化后：生成验证码的归属传给浏览器Cookie
+        //优化后：生成验证码的归属传给浏览器Cookie
         String kaptchaOwner = CommunityUtil.generateUUID();
         Cookie cookie = new Cookie("kaptchaOwner", kaptchaOwner);
         cookie.setMaxAge(60);
         cookie.setPath(contextPath);
-        response.addCookie(cookie);**
+        response.addCookie(cookie);
 
-**        ****//优化后：将验证码存入Redis****
+        //优化后：将验证码存入Redis
         String redisKey = RedisKeyUtil.getKaptchaKey(kaptchaOwner);
-        redisTemplate.opsForValue().set(redisKey, text, 60 , TimeUnit.SECONDS);**
+        redisTemplate.opsForValue().set(redisKey, text, 60 , TimeUnit.SECONDS);
 
         //将图片输出给浏览器
         response.setContentType("image/png");
@@ -1204,8 +1369,8 @@ public class RedisKeyUtil {
     }
 ```
 
-```Java
-    /***
+```java
+    /**
      * 登录功能
      * @param redisKey 用于获取kaptcha验证码
      * @param @CookieValue用于浏览器接受cookie
@@ -1215,19 +1380,20 @@ public class RedisKeyUtil {
     /**注意username,password这些没有封装进model**/
     public String login(String username, String password, String code, boolean rememberme,
                         Model model, HttpServletResponse response,
-                        **@CookieValue("kaptchaOwner") String kaptchaOwner**) {
-       ** /**优化前：首先检验验证码(从session取验证码)
-        * String kaptcha = (String) session.getAttribute("kaptcha");
-        **/**
+                        @CookieValue("kaptchaOwner") String kaptchaOwner) {
+        /**
+         * 优化前：首先检验验证码(从session取验证码)
+         * String kaptcha = (String) session.getAttribute("kaptcha");
+         */
 
-        **// 优化后：从redis中获取kaptcha的key**
-        **String kaptcha = null;
+        // 优化后：从redis中获取kaptcha的key
+        String kaptcha = null;
         // 判断从浏览器传来的Cookie是否为空
         if (StringUtils.isNotBlank(kaptchaOwner)) {
             String redisKey = RedisKeyUtil.getKaptchaKey(kaptchaOwner);
             // 获取key为验证码的redis数据
             kaptcha  = (String) redisTemplate.opsForValue().get(redisKey);
-        }**
+        }
 
         if (StringUtils.isBlank(kaptcha) || StringUtils.isBlank(code) || !kaptcha.equalsIgnoreCase(code)) {
             model.addAttribute("codeMsg", "验证码不正确！");
@@ -1253,27 +1419,27 @@ public class RedisKeyUtil {
     }
 ```
 
-  ## 使用Redis存存登录凭证
+## 使用Redis存存登录凭证
 
-    ### 1.编写RedisUtil工具类设置登录凭证key值
+### 1.编写RedisUtil工具类设置登录凭证key值
 
-```Java
+```java
     // 登录凭证
     private static final String PREFIX_TICKET = "ticket";
-    /** 登录凭证 **/
-    public static String getTicketKey(String **ticket**) {
-        return **PREFIX_TICKET + SPLIT + ticket;**
+    /**登录凭证**/
+    public static String getTicketKey(String ticket) {
+        return PREFIX_TICKET + SPLIT + ticket;
     }
 ```
 
-    ### 2.优化UserService中LoginTicket相关代码（废弃LoginTicket数据库表，使用redis）
+### 2.优化UserService中LoginTicket相关代码（废弃LoginTicket数据库表，使用redis）
 
-```Java
+```java
     @Autowired
     private RedisTemplate redisTemplate;
     /**
-     * **登录功能（redis优化）**
-     **/
+     * 登录功能（redis优化）
+     */
     public Map<String, Object> login(String username, String password, int expiredSeconds) {
         HashMap<String, Object> map = new HashMap<>();
         //空值处理
@@ -1308,13 +1474,13 @@ public class RedisKeyUtil {
         ticket.setTicket(CommunityUtil.generateUUID());
         ticket.setStatus(0);
         //当前时间的毫秒数+过期时间毫秒数
-        ticket.setExpired(new Date(System.currentTimeMillis() + expiredSeconds * 1000));
-        **// 优化前：loginTicketMapper.insertLoginTicket(ticket);**
+        ticket.setExpired(new Date(System.currentTimeMillis() + expiredSeconds*  1000));
+        // 优化前：loginTicketMapper.insertLoginTicket(ticket);
         
-        **// 优化后：loginticket对象放入redis中**
-        **String redisKey = RedisKeyUtil.getTicketKey(ticket.getTicket());
+        // 优化后：loginticket对象放入redis中
+        String redisKey = RedisKeyUtil.getTicketKey(ticket.getTicket());
         // opsForValue将ticket对象序列化为json字符串
-        redisTemplate.opsForValue().****set****(redisKey, ticket);**
+        redisTemplate.opsForValue().set(redisKey, ticket);
 
         map.put("ticket", ticket.getTicket());
 
@@ -1322,64 +1488,64 @@ public class RedisKeyUtil {
     }
 ```
 
-```Java
+```java
     /**
-     * **通过Cookie=ticket获取登录用户(redis优化)**
-     **/
+    * 通过Cookie=ticket获取登录用户(redis优化)
+    */
     public LoginTicket getLoginTicket(String ticket) {
-        **//优化前： return loginTicketMapper.selectByTicket(ticket);**
-        **String redisKey = RedisKeyUtil.getTicketKey(ticket);
-        return (LoginTicket) redisTemplate.opsForValue().****get****(redisKey);**
+        //优化前： return loginTicketMapper.selectByTicket(ticket);
+        String redisKey = RedisKeyUtil.getTicketKey(ticket);
+        return (LoginTicket) redisTemplate.opsForValue().get(redisKey);
     }
 ```
 
-  ## 使用Redis缓存用户信息
+## 使用Redis缓存用户信息
 
-    ### 1.编写RedisUtil工具类设置用户缓存key值
+### 1.编写RedisUtil工具类设置用户缓存key值
 
-```Java
+```java
     // 用户缓存
     private static final String PREFIX_USER = "user";
-    /** 用户缓存 **/
-    public static String getUserKey(int **userId**) {
-        return **PREFIX_USER + SPLIT + userId;**
+    /**用户缓存**/
+    public static String getUserKey(int userId) {
+        return PREFIX_USER + SPLIT + userId;
     }
 ```
 
-    ### 2.优化UserService中findUserById和userMapper.updateXXX方法
+### 2.优化UserService中findUserById和userMapper.updateXXX方法
 
-```Java
-     **/**
+```java
+     /**
      * 因为经常使用这个方法，所以将它用redis缓存优化
      * 若缓存中有访问的用户直接从缓存中取出，否则从数据库查询后加入redis中作为缓存
-     * **/**
+     */
     public User findUserById(int userId) {
         // return userMapper.selectById(userId);
         // 从redis缓存中取值
-        User user = **getCache**(userId);
+        User user = getCache(userId);
         if (user == null) {
-            user = **initCache**(userId);
+            user = initCache(userId);
         }
         return user;
     }
     
     /**
-     * 更新头像
-     **/
+    * 更新头像
+    */
     public int updateHeader(int userId, String headerUrl) {
-        /** 同时处理mysql和redis事务的方法，报错回滚**/
+        /** 同时处理mysql和redis事务的方法，报错回滚* */
         int rows = userMapper.updateHeader(userId, headerUrl);
         clearCache(userId);
         return rows;
     }
    
     // 1.优先从缓存中取值
-    private User **getCache**(int userId) {
+    private User getCache(int userId) {
         String redisKey = RedisKeyUtil.getUserKey(userId);
         return (User) redisTemplate.opsForValue().get(redisKey);
     }
     // 2.取不到时初始化缓存数据(redis存值)
-    private User **initCache**(int userId) {
+    private User initCache(int userId) {
         User user = userMapper.selectById(userId);
         String redisKey = RedisKeyUtil.getUserKey(userId);
 
@@ -1387,51 +1553,49 @@ public class RedisKeyUtil {
         return user;
     }
     // 3.数据变更时清除缓存(删除redis的key)
-    private void **clearCache**(int userId) {
+    private void clearCache(int userId) {
         String redisKey = RedisKeyUtil.getUserKey(userId);
         redisTemplate.delete(redisKey);
     }
 ```
 
-
-
 # 会话管理（暂时仅有demo）
 
-  ### 1.面试题Cookie和Session的区别？
+### 1.面试题Cookie和Session的区别？
 
-    1.cookie是存放在浏览器上的，session是存放在服务器上的。
+1.cookie是存放在浏览器上的，session是存放在服务器上的。
 
-    2.cookie数据不安全，如果考虑到安全应使用session。
+2.cookie数据不安全，如果考虑到安全应使用session。
 
-    3.session会增加服务端的内存压力,考虑到减轻服务器性能方面，应当使用cookie。
+3.session会增加服务端的内存压力,考虑到减轻服务器性能方面，应当使用cookie。
 
-    4.cookie只能存放一对字符串k-v
+4.cookie只能存放一对字符串k-v
 
-    ![](https://secure2.wostatic.cn/static/3aN4QytZPP9YX2W76Dyv9b/cookie.PNG)
+![](image/cookie_ydwZWF6ZCb.PNG)
 
-    ![](https://secure2.wostatic.cn/static/katrJY4M8bgr7poLYe7aF1/session.PNG)
+![](image/session_4ZmfBdmJQn.PNG)
 
-  ### 2.Cookie是干嘛的？
+### 2.Cookie是干嘛的？
 
-    因为Http是无状态的，所以需要用到cookie。通俗说cookie是用来让服务器记住浏览器的。
+因为Http是无状态的，所以需要用到cookie。通俗说cookie是用来让服务器记住浏览器的。
 
-  ### 3.分布式session共享方案
+### 3.分布式session共享方案
 
-    1、粘性session：在nginx中提供一致性哈希策略，可以保持用户ip进行hash值计算固定分配到某台服务器上，负载也比较均衡，其问题是假如有一台服务器挂了，session也丢失了。
+1、粘性session：在nginx中提供一致性哈希策略，可以保持用户ip进行hash值计算固定分配到某台服务器上，负载也比较均衡，其问题是假如有一台服务器挂了，session也丢失了。
 
-    2、同步session：当某一台服务器存了session后，同步到其他服务器中，其问题是同步session到其他服务器会对服务器性能产生影响，服务器之间耦合性较强。
+2、同步session：当某一台服务器存了session后，同步到其他服务器中，其问题是同步session到其他服务器会对服务器性能产生影响，服务器之间耦合性较强。
 
-    3、共享session：单独搞一台服务器用来存session，其他服务器都向这台服务器获取session，其问题是这台服务器挂了，session就全部丢失。
+3、共享session：单独搞一台服务器用来存session，其他服务器都向这台服务器获取session，其问题是这台服务器挂了，session就全部丢失。
 
-    4、redis集中管理session(主流方法)：redis为内存数据库，读写效率高，并可在集群环境下做高可用。
+4、redis集中管理session(主流方法)：redis为内存数据库，读写效率高，并可在集群环境下做高可用。
 
-  ![](https://secure2.wostatic.cn/static/89ndkWYcLMNkfRgjUwTuLR/Session集群2.PNG)
+![](image/Session集群2_6m4V-afro7.PNG)
 
-  ### 4.简单API实现
+### 4.简单API实现
 
-```Java
+```java
 /**
- *Cookie示例(获取Cookie时@CookieValue有点问题！！)
+ * Cookie示例(获取Cookie时@CookieValue有点问题！！)
  */
 @RequestMapping(value = "/cookie/set",method = RequestMethod.GET)
 @ResponseBody
@@ -1474,15 +1638,17 @@ public String getSession(HttpSession session){
 
 # 上传头像功能
 
-  **注意：****1.必须是Post请求    2.表单：enctype="multipart/form-data"  3.参数类型MultipartFile只能封装一个文件**
+注意：1. 必须是Post请求 
+2.表单：enctype="multipart/form-data"
+3.参数类型MultipartFile只能封装一个文件
 
-  **上传路径可以是本地路径也可以是web路径**。
+上传路径可以是本地路径也可以是web路径
 
-  **访问路径****必须****是符合HTTP协议的****Web路径****。**
+访问路径**必须**是符合HTTP协议的**Web路径**
 
-  ## 1.编写Service和Dao层
+## 1.编写Service和Dao层
 
-```Java
+```java
 //Dao层
 <update id="updatePassword">
     update user set password=#{password} where id=#{id}
@@ -1496,9 +1662,9 @@ public int updateHeader(int userId,String headerUrl){
 }
 ```
 
-  ## 2.编程Controller层
+## 2.编程Controller层
 
-```Java
+```java
 @Controller
 @RequestMapping("/user")
 public class UserController {
@@ -1519,7 +1685,7 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    /**获得当前登录用户的信息**/
+    /**获得当前登录用户的信息* */
     private HostHolder hostHolder;
 
     @RequestMapping(value = "/setting",method = RequestMethod.GET)
@@ -1530,7 +1696,7 @@ public class UserController {
     //上传头像
     @RequestMapping(value = "/upload",method = RequestMethod.POST)
     public String uploadHeader(MultipartFile headerImage, Model model){
-//        StringUtils.isBlank(headerImage)
+    //StringUtils.isBlank(headerImage)
         if (headerImage == null){
             model.addAttribute("error","您还没有选择图片！");
             return "/site/setting";
@@ -1539,7 +1705,7 @@ public class UserController {
         * 获得原始文件名字
         * 目的是：生成随机不重复文件名，防止同名文件覆盖
         * 方法：获取.后面的图片类型 加上 随机数
-        * */
+        */
         String filename = headerImage.getOriginalFilename();
         String suffix = filename.substring(filename.lastIndexOf(".") );
 
@@ -1570,7 +1736,7 @@ public class UserController {
     }
 ```
 
-```Java
+```java
   //得到服务器图片
   @RequestMapping(path = "/header/{fileName}", method = RequestMethod.GET)
   /**void:返回给浏览器的是特色的图片类型所以用void**/
@@ -1599,9 +1765,9 @@ public class UserController {
   }
 ```
 
-  ## 3.前端核心页面
+## 3.前端核心页面
 
-```HTML
+```html
 <form class="mt-5" method="post" enctype="multipart/form-data" th:action="@{/user/upload}">
     <div class="custom-file">
       <input type="file"
@@ -1615,30 +1781,28 @@ public class UserController {
 </form>
 ```
 
-
-
 # 过滤敏感词
 
-**前缀树****：1.根节点不包含字符，除根节点以外的每个节点，只包含一个字符**
+前缀树  ：1.根节点不包含字符，除根节点以外的每个节点，只包含一个字符
 
-           **2.从根节点到某一个节点，路径上经过的字符连接起来，为该节点对应字符串**
+&#x20;        2.从根节点到某一个节点，路径上经过的字符连接起来，为该节点对应字符串
 
-        ** 3.每个节点的所有子节点，包含的字符串不相同**
+&#x20;    3.每个节点的所有子节点，包含的字符串不相同
 
-**核心****：1.有一个指针指向前缀树，用以遍历敏感词的每一个字符**
+核心  ：1.有一个指针指向前缀树，用以遍历敏感词的每一个字符
 
-**          2.有一个指针指向被过滤字符串，用以标识敏感词的开头**
+&#x20;         2.有一个指针指向被过滤字符串，用以标识敏感词的开头
 
-**          3.有一个指针指向被过滤字符串，用以标识敏感词的结尾**
+&#x20;         3.有一个指针指向被过滤字符串，用以标识敏感词的结尾
 
-![](https://secure2.wostatic.cn/static/uV5oYBQ6iSpaX9Dst43SDe/前缀树.PNG)
+![](image/前缀树_nTNaIPnorr.PNG)
 
 ### 1.过滤敏感词算法
 
-  **在resources创建sensitive-words.txt文敏感词文本**
+**在resources创建sensitive-words.txt文敏感词文本**
 
-```Java
-/****
+```java
+/**
  * 过滤敏感词工具类
  * 类似于二叉树的算法
  */
@@ -1648,7 +1812,7 @@ public class SensitiveFilter {
     private static final Logger logger = LoggerFactory.getLogger(SensitiveFilter.class);
 
     // 替换符
-    private static final String REPLACEMENT = "***";
+    private static final String REPLACEMENT = "* **";
 
     // 根节点
     private TrieNode rootNode = new TrieNode();
@@ -1799,9 +1963,9 @@ public class SensitiveFilter {
 
 ### 2.引入第三方Maven,如下：
 
-  [**https://github.com/jinrunheng/sensitive-words-filter**](https://github.com/jinrunheng/sensitive-words-filter)
+[*https://github.com/jinrunheng/sensitive-words-filter* ](https://github.com/jinrunheng/sensitive-words-filter "https://github.com/jinrunheng/sensitive-words-filter")
 
-```XML
+```xml
 <dependency>
   <groupId>io.github.jinrunheng</groupId>
   <artifactId>sensitive-words-filter</artifactId>
@@ -1809,17 +1973,15 @@ public class SensitiveFilter {
 </dependency>
 ```
 
-
-
 # 发布贴子
 
-  **核心****：ajax异步：整个网页不刷新，访问服务器资源返回结果，实现局部的刷新。**
+核心 **：ajax异步：整个网页不刷新，访问服务器资源返回结果，实现局部的刷新。**
 
-  **实质：****JavaScript****和XML（但目前****JSON****的使用比XML更加普遍）**
+实质：**JavaScript**和XML（但目前**JSON**的使用比XML更加普遍）
 
-  **封装****Fastjson****工具类**
+封装**Fastjson**工具类
 
-```JavaScript
+```javascript
   //使用fastjson，将JSON对象转为JSON字符串(前提要引入Fastjson)
   public static String getJSONString(int code, String msg, Map<String, Object> map) {
       JSONObject json = new JSONObject();
@@ -1841,9 +2003,9 @@ public class SensitiveFilter {
   }
 ```
 
-  ### ajax异步Demo示例
+### ajax异步Demo示例
 
-```Java
+```java
   /**
    * Ajax异步请求示例
    */
@@ -1856,7 +2018,7 @@ public class SensitiveFilter {
   }
 ```
 
-```JavaScript
+```javascript
   //异步JS
   <input type="button" value="发送" onclick="send();">
   function send() {
@@ -1878,9 +2040,9 @@ public class SensitiveFilter {
 
 ```
 
-  ## 1.编写Mapper层
+## 1.编写Mapper层
 
-```XML
+```xml
 int insertDiscussPost(DiscussPost discussPost);
 
 <sql id="insertFields">
@@ -1892,9 +2054,9 @@ int insertDiscussPost(DiscussPost discussPost);
 </insert>
 ```
 
-  ## 2.编写Service层
+## 2.编写Service层
 
-```Java
+```java
   public int addDiscussPost(DiscussPost post){
       if(post == null){
           //不用map直接抛异常
@@ -1912,9 +2074,9 @@ int insertDiscussPost(DiscussPost discussPost);
 
 ```
 
-  ## 3.编写Controller层(**异步请求要加@ResponseBody,且不用在Controller层用Model**，用Js)
+## 3.编写Controller层(异步请求要加@ResponseBody,且不用在Controller层用Model，用Js)
 
-```Java
+```java
   @Autowired
   private DiscussPostService discussPostService;
   @Autowired
@@ -1942,11 +2104,11 @@ int insertDiscussPost(DiscussPost discussPost);
   }
 ```
 
-  ## 4.编写前端异步JS
+## 4.编写前端异步JS
 
-  **注意：$.parseJSON(data)** **→通过jQuery，将服务端返回的JSON格式的字符串转为js对象**
+注意：\$.parseJSON(data) →通过jQuery，将服务端返回的JSON格式的字符串转为js对象
 
-```JavaScript
+```javascript
 $(function(){
   $("#publishBtn").click(publish);
 });
@@ -1954,8 +2116,8 @@ $(function(){
 function publish() {
   $("#publishModal").modal("hide");
   /**
-   * 服务器处理
-   */
+  * 服务器处理
+  */
   // 获取标题和内容
   var title = $("#recipient-name").val();
   var content = $("#message-text").val();
@@ -1986,9 +2148,9 @@ function publish() {
 
 # 查看帖子详情
 
-  ## 1.编写Mapper层
+## 1.编写Mapper层
 
-```XML
+```xml
 DiscussPost selectDiscussPostById(int id);
 <---------------------->
 <select id="selectDiscussPostById" resultType="DiscussPost">
@@ -1998,17 +2160,17 @@ DiscussPost selectDiscussPostById(int id);
 </select>
 ```
 
-  ## 2.编写Service层
+## 2.编写Service层
 
-```Java
+```java
   public DiscussPost findDiscussPostById(int id){
       return discussPostMapper.selectDiscussPostById(id);
   }
 ```
 
-  ## 3.编写Controller层
+## 3.编写Controller层
 
-```Java
+```java
   @RequestMapping(value = "/detail/{discussPostId}", method = RequestMethod.GET)
   public String getDiscusspost(@PathVariable("discussPostId") int discussPostId, Model model){
       //通过前端传来的Id查询帖子
@@ -2022,9 +2184,9 @@ DiscussPost selectDiscussPostById(int id);
   }
 ```
 
-  ## 4.编写前端核心部分（进入详情链接及Controller层中的model）
+## 4.编写前端核心部分（进入详情链接及Controller层中的model）
 
-```HTML
+```html
 <!--前端点击进入详情的链接-->
 <li th:each="map:${discussPosts}">
   <a th:href="@{|/discuss/detail/${map.post.id}|}" th:utext="${map.post.title}">标题链接</a>
@@ -2037,76 +2199,74 @@ th:text="${#dates.format(post.getCreateTime(),'yyyy-MM-dd HH:mm:ss')}"   <!--发
 th:utext="${post.getContent()}"   <!--发帖内容-->
 ```
 
-
-
 # 事务管理
 
 ## 1.概念
 
-  ### 1.1事务的特性
+### 1.1事务的特性
 
-    **原子性：****即事务是应用中不可再分的最小执行体。**
+原子性：**即事务是应用中不可再分的最小执行体。**
 
-    **一致性：****即事务执行的结果，必须使数据从一个一致性状态，变为另一个一致性状态。**
+一致性：**即事务执行的结果，必须使数据从一个一致性状态，变为另一个一致性状态。**
 
-    **隔离性：****即各个事务的执行互不干扰，任何事务的内部操作对其他的事务都是隔离的。**
+隔离性：**即各个事务的执行互不干扰，任何事务的内部操作对其他的事务都是隔离的。**
 
-    **持久性：****事务一旦提交，对数据所做的任何改变都要记录到永久存储器。**
+持久性：**事务一旦提交，对数据所做的任何改变都要记录到永久存储器。**
 
-  ### 1.2事务的四种隔离级别
+### 1.2事务的四种隔离级别
 
-    **Read Uncommitted：** **读未提交（级别****最低****）**
+Read Uncommitted： 读未提交（级别**最低**）
 
-    **Read Committed：** **读已提交**
+Read Committed： 读已提交
 
-    **Repeatable Read：** **可重复读**
+Repeatable Read： 可重复读
 
-    **Serializable：** **串行化（级别****最高****，性能最低，因为要加锁）**
+Serializable： 串行化（级别**最高** ，*性能最低，因为要加锁）*
 
-  ### 1.3并发异常
+### 1.3并发异常
 
-    **·第一类丢失更新**
+- 第一类丢失更新
 
-    **·第二类丢失更新**
+- 第二类丢失更新
 
-    **·脏读**
+- 脏读
 
-    **·不可重复读**
+- 不可重复读
 
-    **·幻读**
+- 幻读
 
-  ![](https://secure2.wostatic.cn/static/eU3Pm7E5fNQHQaKy847YyD/3.PNG)
+![](image/3_Mbdb-PY0NL.PNG)
 
-  ![](https://secure2.wostatic.cn/static/3VS2oLQeeMndqDURuFabYW/4.PNG)
+![](image/4_YlSXH6_OBG.PNG)
 
-  ![](https://secure2.wostatic.cn/static/uLx8pLw6KFRvESuVTfAoH9/5.PNG)
+![](image/5_a3J6VuhqzZ.PNG)
 
-  ![](https://secure2.wostatic.cn/static/B6t8QHUxphD8wjVgrbcLL/6.PNG)
+![](image/6_4dy3KJ0Wtd.PNG)
 
-  ![](https://secure2.wostatic.cn/static/fKXsdcsLMYdsXj5N4TKsUZ/7.PNG)
+![](image/7_B6xJyOOtTx.PNG)
 
-  ![](https://secure2.wostatic.cn/static/eBEETXKFf71k6XgCBhnsYu/8.PNG)
+![](image/8_Nd_jlUfSXc.PNG)
 
-  ![](https://secure2.wostatic.cn/static/kRZPCEpfUGHnRLd5WLtvPb/9.PNG)
+![](image/9_hSNFRdQQ1L.PNG)
 
 ## 2.Spring声明式事务
 
-  **方法：****1.通过XML配置    2.通过注解@Transaction，如下：**
+ 方法： **1.通过XML配置    2.通过注解@Transaction，如下：**
 
-```Java
+```java
 /* REQUIRED: 支持当前事务（外部事务），如果不存在则创建新事务
-*  REQUIRED_NEW: 创建一个新事务，并且暂停当前事务（外部事务）
-*  NESTED: 如果当前存在事务（外部事务），则嵌套在该事务中执行（独立的提交和回滚），否则就会和REQUIRED一样
-*  遇到错误，Sql回滚  （A->B）
-*/
+ * REQUIRED_NEW: 创建一个新事务，并且暂停当前事务（外部事务）
+ * NESTED: 如果当前存在事务（外部事务），则嵌套在该事务中执行（独立的提交和回滚），否则就会和REQUIRED一样
+ * 遇到错误，Sql回滚  （A->B）
+ */
 @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
 ```
 
 ## 3.Spring编程式事务(通常用来管理中间某一小部分事务)
 
-  **方法：** **通过TransactionTemplate组件执行SQL管理事务，如下：**
+**方法：** **通过TransactionTemplate组件执行SQL管理事务，如下：**
 
-```Java
+```java
   public Object save2(){
       transactionTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
       transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
@@ -2129,15 +2289,13 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
  }
 ```
 
-
-
 # 评论功能
 
-  ## 显示评论（评论和评论中的回复）
+## 显示评论（评论和评论中的回复）
 
-    ### 1.编写Dao层接口
+### 1.编写Dao层接口
 
-```Java
+```java
   /**
    * 根据评论类型(帖子评论和回复评论)和评论Id--分页查询评论
    * @return Comment类型集合
@@ -2167,9 +2325,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   
 ```
 
-    ### 2.编写业务Service层
+### 2.编写业务Service层
 
-```Java
+```java
   public List<Comment> findCommentsByEntity(int entityType, int entityId, int offset, int limit){
       return commentMapper.selectCommentsByEntity(entityType, entityId, offset, limit);
   }
@@ -2178,9 +2336,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 3.编写Controller控制层（接查看帖子详情，如上）难点（类似于套娃）！
+### 3.编写Controller控制层（接查看帖子详情，如上）难点（类似于套娃）！
 
-```Java
+```java
   @RequestMapping(value = "/detail/{discussPostId}", method = RequestMethod.GET)
   public String getDiscusspost(@PathVariable("discussPostId") int discussPostId, Model model, Page page) {
       //通过前端传来的Id查询帖子
@@ -2191,11 +2349,11 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
       User user = userService.findUserById(post.getUserId());
       model.addAttribute("user", user);
       
-      // **点赞数量**
+      // 点赞数量
       long likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_POST, discussPostId);
       model.addAttribute("likeCount", likeCount);
 
-      **// 点赞状态 (没登录就显示0)**
+      // 点赞状态 (没登录就显示0)
       int likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_POST, discussPostId);
       model.addAttribute("likeStatus", likeStatus);
 
@@ -2204,8 +2362,8 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
       page.setPath("/discuss/detail/"+discussPostId);
       page.setRows(post.getCommentCount());
       
-**      // 评论: 给帖子的评论
-      // 回复: 给评论的评论**
+      // 评论: 给帖子的评论
+      // 回复: 给评论的评论
       // 评论列表集合
       List<Comment> commentList = commentService.findCommentsByEntity(ENTITY_TYPE_POST, post.getId(), page.getOffset(), page.getLimit());
 
@@ -2221,10 +2379,10 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
               // 作者(由comment表中 entity = 1 查user表)
               commentVo.put("user", userService.findUserById(comment.getUserId()));
               
-              **// 点赞数量**
+              // 点赞数量
               likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, comment.getId());
               commentVo.put("likeCount", likeCount);
-              **// 点赞状态 (没登录就显示0)**
+              // 点赞状态 (没登录就显示0)
               likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, comment.getId());
               commentVo.put("likeStatus", likeStatus);
 
@@ -2245,10 +2403,10 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
                       User target = reply.getTargetId() == 0 ? null : userService.findUserById(reply.getTargetId());
                       replyVo.put("target", target);
                       
-                      **// 点赞数量**
+                      // 点赞数量
                       likeCount = likeService.findEntityLikeCount(ENTITY_TYPE_COMMENT, reply.getId());
                       replyVo.put("likeCount", likeCount);
-                      **// 点赞状态 (没登录就显示0)**
+                      // 点赞状态 (没登录就显示0)
                       likeStatus = hostHolder.getUser() == null ? '0' : likeService.findEntityLikeStatus(hostHolder.getUser().getId(), ENTITY_TYPE_COMMENT, reply.getId());
                       replyVo.put("likeStatus", likeStatus);
                       
@@ -2274,18 +2432,18 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 4.编写前端Thymeleaf页面（核心部分）
+### 4.编写前端Thymeleaf页面（核心部分）
 
-      **注意：** **xxxStat—>Thymeleaf内置对象**
+注意： xxxStat—>Thymeleaf内置对象
 
-```HTML
-<!-- **回帖**列表 -->
+```html
+<!-- 回帖列表 -->
 <li class="media pb-3 pt-3 mb-3 border-bottom" th:each="cvo:${comments}">
   <img th:src="${cvo.user.getHeaderUrl()}" alt="用户头像">
   <div>
     <span th:utext="${cvo.user.getUsername()}">用户姓名</span>
     <span>
-      <i th:text="${**page.offset + cvoStat.count**}">1 评论楼层</i>#
+      <i th:text="${page.offset + cvoStat.count}">1 评论楼层</i>#
     </span>
   </div>
   <div th:utext="${cvo.comment.content}">
@@ -2296,14 +2454,14 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
     <li><a href="#">回复(<i th:text="${cvo.replyCount}">2</i>)</a></li>
   </ul>
   
-  <!-- **回复**列表 -->
+  <!-- 回复列表 -->
   <li th:each="rvo:${cvo.replys}">
     <div>
-      <!--**直接回复**-->
+      <!--直接回复-->
       <span th:if="${rvo.target==null}">
         <b th:utext="${rvo.user.username}">回复人姓名</b>
       </span>
-      <!--**追加回复**-->
+      <!--追加回复-->
       <span th:if="${rvo.target!=null}">
         <i th:text="${rvo.user.username}">回复人姓名</i> 回复
         <b th:text="${rvo.target.username}">被回复人姓名</b>
@@ -2316,7 +2474,7 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
       <ul>
         <li><a href="#">赞(1)</a></li>
         <li>|</li>
-        <!--关联id对应回复  **动态拼接**-->
+        <!--关联id对应回复  动态拼接-->
         <li><a th:href="|#huifu-${rvoStat.count}|" data-toggle="collapse">回复</a></li>
       </ul>
       
@@ -2330,13 +2488,11 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 最后复用分页：th:replace="index::pagination"
 ```
 
-    
+## 添加评论  (用到事务管理)
 
-  ## 添加评论  (用到事务管理)
+### 1.编写Dao层 （1.增加评论数据CommentMapper 2.修改帖子评论数量DiscussPostMapper）
 
-    ### 1.编写Dao层 （1.增加评论数据CommentMapper 2.修改帖子评论数量DiscussPostMapper）
-
-```Java
+```java
  //CommentMapper 
  int insertComment(Comment comment);
  <insert id="insertComment" parameterType="Comment">
@@ -2353,9 +2509,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 
 ```
 
-    ### 2.编写业务Service层
+### 2.编写业务Service层
 
-```Java
+```java
   //DiscussPostService
    public int updateCommentCount(int id, int commentCount){
       return discussPostMapper.updateCommentCount(id, commentCount);
@@ -2365,9 +2521,8 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   /**
    * 添加评论(涉及事务)
    * 先添加评论，后修改discuss_post中的评论数（作为一个整体事务，出错需要整体回滚！）
-   * @return
    */
-  **@Transactional**(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
+  @Transactional(isolation = Isolation.READ_COMMITTED, propagation = Propagation.REQUIRED)
   public int addComment(Comment comment){
       if (comment == null){
           throw new IllegalArgumentException("参数不能为空！");
@@ -2390,9 +2545,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 3.编写Controller层
+### 3.编写Controller层
 
-```Java
+```java
   //需要从前端带一个参数
   @RequestMapping(value = "/add/{discussPostId}", method = RequestMethod.POST)
   public String addComment(@PathVariable("discussPostId") int discussPostId, Comment comment){
@@ -2404,15 +2559,15 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 4.编写Thymleaf前端页面（核心）
+### 4.编写Thymleaf前端页面（核心）
 
-```HTML
+```html
 <!--帖子评论框-->
-<form method="post" th:action="@{|/comment/add/**${post.id}**|}">
+<form method="post" th:action="@{|/comment/add/${post.id}|}">
   <p>
-    <textarea placeholder="帖子评论框!" name="**content**"></textarea>
-    <input type="**hidden**" name="**entityType**" value="1">
-    <input type="**hidden**" name="**entityId**" th:value="${**post.id**}">
+    <textarea placeholder="帖子评论框!" name="content"></textarea>
+    <input type="hidden" name="entityType" value="1">
+    <input type="hidden" name="entityId" th:value="${post.id}">
   </p>
   <button type="submit">回帖</button>
 </form>
@@ -2420,10 +2575,10 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 <!--回复输入框-->
 <form method="post" th:action="@{|/comment/add/${post.id}|}">
   <div>
-    <input type="text" name="**content**" placeholder="回复输入框"/>
-    <input type="hidden" name="**entityType**" value="**2**">
+    <input type="text" name="content" placeholder="回复输入框"/>
+    <input type="hidden" name="entityType" value="2">
     <!--回复评论id，即entityType=2的评论id-->
-    <input type="hidden" name="**entityId**" th:value="${**cvo.comment.id**}">
+    <input type="hidden" name="entityId" th:value="${cvo.comment.id}">
   </div>
   <button type="submit" onclick="#">回复</button>
 </form>
@@ -2431,11 +2586,11 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 <!--追加回复框-->
 <form method="post" th:action="@{|/comment/add/${post.id}|}">
   <div>
-    <input type="text" name="**content**" th:placeholder="|回复${rvo.user.username}|"/>
-    <input type="hidden" name="**entityType**" value="**2**">
-    <input type="hidden" name="**entityId**" th:value="${cvo.comment.id}">
-    <!--回复评论的**作者id**-->
-    <input type="hidden" name="**targetId**" th:value="${**rvo.user.id**}">
+    <input type="text" name="content" th:placeholder="|回复${rvo.user.username}|"/>
+    <input type="hidden" name="entityType" value="2">
+    <input type="hidden" name="entityId" th:value="${cvo.comment.id}">
+    <!--回复评论的作者id-->
+    <input type="hidden" name="targetId" th:value="${rvo.user.id}">
   </div>
   <button type="submit" onclick="#">回复</button>
 </form>
@@ -2443,18 +2598,18 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 
 # 私信功能
 
-  ## 显示私信列表（难度在写SQL）
+## 显示私信列表（难度在写SQL）
 
-    ### 1.编写Dao层
+### 1.编写Dao层
 
-```Java
+```java
   /**查询当前用户的会话列表,针对每个会话只返回一条最新的私信**/
   List<Message> selectConversations(@Param("userId") int userId,@Param("offset") int offset,@Param("limit") int limit);
 
   /**查询当前用户的会话数量**/
   int selectConversationCount(@Param("userId") int userId);
 
-  /**查询某个会话所包含的私信列表.**/
+  /**查询某个会话所包含的私信列表**/
   List<Message> selectLetters(@Param("conversationId") String conversationId,@Param("offset") int offset,@Param("limit") int limit);
 
   /**查询某个会话所包含的私信数量**/
@@ -2463,13 +2618,13 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
    * 查询未读的数量
    * 1.带参数conversationId ：私信未读数量
    * 2.不带参数conversationId ：当前登录用户 所有会话未读数量
-   * **/
+   */
   int selectLetterUnreadCount(@Param("userId")int userId,@Param("conversationId") String conversationId);
 ```
 
-    ### 2.编写Mapper.xml(**难度**)
+### 2.编写Mapper.xml(难度)
 
-```SQL
+```sql
 <sql id="selectFields">
     id, from_id, to_id, conversation_id, content, status, create_time
 </sql>
@@ -2478,13 +2633,13 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
     select <include refid="selectFields"></include>
     from message
     where id in (
-        //**子句根据id大小查与每个用户最新的私信（同一会话id越大，私信越新）**
+        //子句根据id大小查与每个用户最新的私信（同一会话id越大，私信越新）
         //也可根据时间戳判断
         select max(id) from message
         where status != 2
         and from_id != 1
         and (from_id = #{userId} or to_id = #{userId})
-        group by conversation_id   //**同一会话只显示一条**
+        group by conversation_id   //同一会话只显示一条
     )
     order by id desc
     limit #{offset}, #{limit}
@@ -2524,15 +2679,15 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
     where status = 0
     and from_id != 1
     and to_id = #{userId}
-    <if test="conversationId!=null"> //**=null:所有会话未读数 !=null:每条会话未读数**
+    <if test="conversationId!=null"> //=null:所有会话未读数 !=null:每条会话未读数
         and conversation_id = #{conversationId}
     </if>
 </select>
 ```
 
-    ### 3.编写Service层
+### 3.编写Service层
 
-```Java
+```java
   @Autowired
   private MessageMapper messageMapper;
 
@@ -2553,11 +2708,11 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 4.编写Controller层
+### 4.编写Controller层
 
-      #### 4.1私信列表Controller
+#### 4.1私信列表Controller
 
-```Java
+```java
   /**私信列表**/
   @RequestMapping(value = "/letter/list", method = RequestMethod.GET)
   public String getLetterList(Model model, Page page){
@@ -2596,9 +2751,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-      #### 4.2私信详情Controller
+#### 4.2私信详情Controller
 
-```Java
+```java
   /**私信详情**/
   @RequestMapping(value = "/letter/detail/{conversationId}", method = RequestMethod.GET)
   public String getLetterDetail(@PathVariable("conversationId")String conversationId, Model model, Page page){
@@ -2626,9 +2781,9 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
       return "/site/letter-detail";
   }
 
-  /**封装获取目标会话用户(将如：101_107拆开)**/
+  /**封装获取目标会话用户(将如：101_107拆开) **/
   private User getLetterTarget(String conversationId) {
-      String[] ids = conversationId.split("_");
+      String[] ids = conversationId.split(" _");
       int id0 = Integer.parseInt(ids[0]);
       int id1 = Integer.parseInt(ids[1]);
 
@@ -2641,54 +2796,54 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
 
 ```
 
-    ### 5.编写Thymeleaf前端页面（核心）
+### 5.编写Thymeleaf前端页面（核心）
 
-      #### 5.1私信列表页面
+#### 5.1私信列表页面
 
-```HTML
+```html
 <a th:href="@{/letter/list}">
-  朋友私信<span th:text="${letterUnreadCount}" th:if="${letterUnreadCount!=0}">**总私信未读数**</span>
+  朋友私信<span th:text="${letterUnreadCount}" th:if="${letterUnreadCount!=0}">总私信未读数</span>
 </a>
 
 <li th:each="map:${conversations}">
-  <span th:text="${map.unreadCount}" th:if="${map.unreadCount!=0}">**单个会话未读数**</span>
+  <span th:text="${map.unreadCount}" th:if="${map.unreadCount!=0}">单个会话未读数</span>
   <a th:href="@{/profile}">
     <img th:src="${map.target.headerUrl}" alt="用户头像" >
   </a>
   <div>
-    <span th:utext="${map.target.username}">**会话目标姓名**</span>
-    <span th:text="${#dates.format(map.conversation.createTime,'yyyy-MM-dd HH:mm:ss')}">**会话最新时间**</span>
-    <a th:href="@{|/letter/detail/${map.conversation.conversationId}|}" th:utext="${map.conversation.content}">**会话内容，可进入详情页**</a>
+    <span th:utext="${map.target.username}">会话目标姓名</span>
+    <span th:text="${#dates.format(map.conversation.createTime,'yyyy-MM-dd HH:mm:ss')}">会话最新时间</span>
+    <a th:href="@{|/letter/detail/${map.conversation.conversationId}|}" th:utext="${map.conversation.content}">会话内容，可进入详情页</a>
     <ul>
-      <li><a href="#">共<i th:text="${map.letterCount}">5</i>**条会话**</a></li>
+      <li><a href="#">共<i th:text="${map.letterCount}">5</i>条会话</a></li>
     </ul>
   </div>
 </li>
 ```
 
-      #### 5.2私信详情页面
+#### 5.2私信详情页面
 
-```HTML
-<h6>来自 <i th:utext="${**target**.username}">**目标会话用户**</i> 的私信</h6>
+```html
+<h6>来自 <i th:utext="${target.username}">目标会话用户</i> 的私信</h6>
 
 <li th:each="map:${letters}">
-  <img th:src="${map.**fromUser**.headerUrl}" alt="用户头像" >
+  <img th:src="${map.fromUser.headerUrl}" alt="用户头像" >
 <div>
-  <strong th:utext="${map.fromUser.username}">**会话发起人姓名**</strong>
-  <small th:text="${#dates.format(map.letter.createTime,'yyyy-MM-dd HH:mm:ss')}">**时间**</small>
+  <strong th:utext="${map.fromUser.username}">会话发起人姓名</strong>
+  <small th:text="${#dates.format(map.letter.createTime,'yyyy-MM-dd HH:mm:ss')}">时间</small>
 </div>
 <div th:utext="${map.letter.content}">
-   **私信内容**
+   私信内容
 </div>
 </li>
 
 ```
 
-  ## 发送私信功能（异步）
+## 发送私信功能（异步）
 
-    ### 1.编写Dao层
+### 1.编写Dao层
 
-```SQL
+```sql
   /**插入会话**/
   int insertMessage(Message message);
   /**批量更改每个会话的所有未读消息为已读**/
@@ -2703,17 +2858,17 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   <update id="updateStatus">
       update message set status = #{status}
       where id in
-      -----**批量传入id写法**
-      <**foreach** collection="ids" item="id" open="(" separator="," close=")">
+      -----批量传入id写法
+      <foreach collection="ids" item="id" open="(" separator="," close=")">
           #{id}
-      </**foreach**>
+      </foreach>
   </update>
   
 ```
 
-    ### 2.编写Service层
+### 2.编写Service层
 
-```Java
+```java
   public int addMessage(Message message){
       //转义标签
       message.setContent(HtmlUtils.htmlEscape(message.getContent()));
@@ -2726,30 +2881,30 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 3.编写Controller层
+### 3.编写Controller层
 
-      #### 3.1设置已读
+#### 3.1设置已读
 
-```Java
+```java
   @RequestMapping(value = "/letter/detail/{conversationId}", method = RequestMethod.GET)
   public String getLetterDetail(@PathVariable("conversationId")String conversationId, Model model, Page page){
         /**
         * 以上省略。。。。。。
-        **/
+        */
         //设置已读(当打开这个页面是就更改status =1)
-        List<Integer> ids = **getLetterIds**(letterlist);
+        List<Integer> ids = getLetterIds(letterlist);
         if (!ids.isEmpty()) {
             messageService.readMessage(ids);
        }
    }
 
-  /**获得批量私信的未读数id**/
-  private List<Integer> **getLetterIds**(List<Message> letterList){
+  /**获得批量私信的未读数id* */
+  private List<Integer> getLetterIds(List<Message> letterList){
       List<Integer> ids = new ArrayList<>();
 
       if (letterList != null) {
           for (Message message : letterList) {
-              //**只有当前登录用户与message列表中目标用户一致并且staus = 0 时才是未读数，加入未读私信集合**
+              //只有当前登录用户与message列表中目标用户一致并且staus = 0 时才是未读数，加入未读私信集合
               if (hostHolder.getUser().getId() == message.getToId() && message.getStatus() == 0) {
                   ids.add(message.getId());
               }
@@ -2759,10 +2914,10 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-      #### 3.2 发送私信
+#### 3.2 发送私信
 
-```Java
-  /**发送私信**/
+```java
+  /**发送私信* */
   @RequestMapping(value = "/letter/send", method = RequestMethod.POST)
   @ResponseBody
   public String sendLetter(String toName, String content){
@@ -2780,7 +2935,7 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
       message.setCreateTime(new Date());
       // conversationId (如101_102: 小_大)
       if (message.getFromId() < message.getToId()) {
-          message.setConversationId(message.getFromId() + "_" +message.getToId());
+          message.setConversationId(message.getFromId() + " _" +message.getToId());
       }else{
           message.setConversationId(message.getToId() + "_" +message.getFromId());
       }
@@ -2790,25 +2945,25 @@ th:utext="${post.getContent()}"   <!--发帖内容-->
   }
 ```
 
-    ### 4.编写前端JS异步请求（ajax）
+### 4.编写前端JS异步请求（ajax）
 
-```JavaScript
+```javascript
 function send_letter() {
   $("#sendModal").modal("hide");
-  //**若用JS异步请求，前端参数不用name= "xxx",用如下方法**
+  //若用JS异步请求，前端参数不用name= "xxx",用如下方法
   var toName = $("#recipient-name").val();
   var content = $("#message-text").val();
 
-  $.**post**(
-    // **接口路径(与@RequestMapping(value = "/letter/send", method = RequestMethod.POST)路径一致**)
+  $.post(
+    // 接口路径(与@RequestMapping(value = "/letter/send", method = RequestMethod.POST)路径一致)
     CONTEXT_PATH + "/letter/send",
-    // **接口参数(与public String sendLetter(String toName, String content)参数一致**)
-    {"toName":**toName**, "content":**content**},
+    // 接口参数(与public String sendLetter(String toName, String content)参数一致)
+    {"toName":toName, "content":content},
     function (data) {
-      // **把{"toName":toName, "content":content}转换成JS对象**
+      // 把{"toName":toName, "content":content}转换成JS对象
       data = $.parseJSON(data);
-      // **与CommunityUtil.getJSONString(0,"msg")匹配--0：成功**
-      if (**data.code == 0**){
+      // 与CommunityUtil.getJSONString(0,"msg")匹配--0：成功
+      if (data.code == 0){
         $("#hintBody").text("发送成功！");
       }else {
         $("#hintBody").text(data.msg);
@@ -2825,73 +2980,71 @@ function send_letter() {
 }
 ```
 
-
-
 # 点赞功能（Redis+异步ajax）
 
-  ## 点赞、取消点赞
+## 点赞、取消点赞
 
-        **注意：****1引入pom,配置Yaml**
+&#x20;   注意：**1引入pom,配置Yaml**
 
-      **          2.因为访问的是Redis，无需编写Dao层**
+&#x20;         2.因为访问的是Redis，无需编写Dao层
 
-    ### 1.创建RedisKeyUtil工具类(统一格式化redis的key)
+### 1.创建RedisKeyUtil工具类(统一格式化redis的key)
 
-      **k:v =** **like:entity:entityType:entityId -> set(userId)**
+k:v = like:entity:entityType:entityId -> set(userId)
 
-```Java
+```java
     private static final String SPLIT = ":";
     private static final String PREFIX_ENTITY_LIKE = "like:entity";
     private static final String PREFIX_USER_LIKE = "like:user";
     /**
     * 某个实体的赞
-    * **key= like:entity:entityType:entityId -> value= userId**
+    * key= like:entity:entityType:entityId -> value= userId
     */
     public static String getEntityLikeKey(int entityType, int entityId){
         return PREFIX_ENTITY_LIKE + SPLIT + entityType + SPLIT + entityId;
     }
 ```
 
-    ### 2.直接编写Service业务层
+### 2.直接编写Service业务层
 
-```Java
+```java
     @Autowired
-    private **RedisTemplate redisTemplate**;
+    private RedisTemplate redisTemplate;
 
-    // 点赞 (记录**谁点了哪个类型哪个留言/帖子id**)
+    // 点赞 (记录谁点了哪个类型哪个留言/帖子id)
     public void like(int userId, int entityType, int entityId){
         String entityLikeKey = RedisKeyUtil.getEntityLikeKey(entityType, entityId);
         //判断like:entity:entityType:entityId 是否有对应的 userId
-        Boolean isMember = redisTemplate.opsForSet().**isMember**(entityLikeKey, userId);
+        Boolean isMember = redisTemplate.opsForSet().isMember(entityLikeKey, userId);
 
-        // **第一次点赞，第二次取消点赞**
+        // 第一次点赞，第二次取消点赞
         if (isMember){
             // 若已被点赞(即entityLikeKey里面有userId)则取消点赞->将userId从中移除
-            redisTemplate.opsForSet().**remove**(entityLikeKey, userId);
+            redisTemplate.opsForSet().remove(entityLikeKey, userId);
         }else {
-            redisTemplate.opsForSet().**add**(entityLikeKey, userId);
+            redisTemplate.opsForSet().add(entityLikeKey, userId);
         }
     }
 
-    // **查询某实体(帖子、留言)点赞的数量 --> scard like:entity:1:110**
+    // 查询某实体(帖子、留言)点赞的数量 --> scard like:entity:1:110
     public long findEntityLikeCount(int entityType, int entityId){
         String entityLikeKey = RedisKeyUtil.getEntityLikeKey(entityType, entityId);
-        return redisTemplate.opsForSet().**size**(entityLikeKey);
+        return redisTemplate.opsForSet().size(entityLikeKey);
     }
 
-    // **显示某人对某实体的点赞状态**
+    // 显示某人对某实体的点赞状态
     public int findEntityLikeStatus(int userId, int entityType, int entityId){
         String entityLikeKey = RedisKeyUtil.getEntityLikeKey(entityType, entityId);
         // 1：已点赞 , 0：赞
-        return redisTemplate.opsForSet().**isMember**(entityLikeKey, userId) ? 1 : 0;
+        return redisTemplate.opsForSet().isMember(entityLikeKey, userId) ? 1 : 0;
     }
 ```
 
-    ### 3.编写点赞Controller层接口（异步）
+### 3.编写点赞Controller层接口（异步）
 
-      **返回：****CommunityUtil.getJSONString(0,null, map)  —>对应响应的js的ajax**
+返回：**CommunityUtil.getJSONString(0,null, map)  —>对应响应的js的ajax**
 
-```Java
+```java
 @Controller
 public class LikeController {
 
@@ -2921,9 +3074,9 @@ public class LikeController {
 }
 ```
 
-    ### 4.编写异步js
+### 4.编写异步js
 
-```JavaScript
+```javascript
 // btn -->对应this
 function like(btn, entityType, entityId) {
     $.post(
@@ -2942,41 +3095,41 @@ function like(btn, entityType, entityId) {
 }
 ```
 
-    ### 5.前端—详情页点赞数量
+### 5.前端—详情页点赞数量
 
-      **对应的Controll层，显示点赞在****主页Controller层****及****显示评论功能Controller层**
+对应的Controll层，显示点赞在****主页Controller层****及\ *\ *显示评论功能Controller层**
 
-```HTML
+```html
   <!--引入Js-->
   <script th:src="@{/js/discuss.js}"></script>
   
-  <!---**href="javascript:;"弃用href使用onclick按钮
-   th:onclick="|like(this,1,${post.id})|", this指代当前按钮,1指代帖子类型**--->
+  <!---href="javascript:;"弃用href使用onclick按钮
+   th:onclick="|like(this,1,${post.id})|", this指代当前按钮,1指代帖子类型--->
   <!--帖子点赞-->
-  <a href="javascript:;" th:onclick="**|like(this,1,${post.id});|**" class="text-primary">
-    <b th:text="$**{likeStatus==1?'已赞':'赞'**}">赞</b> <i th:text="${likeCount}">11</i>
+  <a href="javascript:;" th:onclick="|like(this,1,${post.id});|" class="text-primary">
+    <b th:text="${likeStatus==1?'已赞':'赞'}">赞</b> <i th:text="${likeCount}">11</i>
   </a>
   
   <!--评论点赞-->
-  <a href="javascript:;" th:onclick="**|like(this,2,${cvo.comment.id});|**" class="text-primary">
-    <b th:text="${**cvo.likeStatus==1?'已赞':'赞'**}">赞</b>(<i th:text="${cvo.likeCount}">1</i>)
+  <a href="javascript:;" th:onclick="|like(this,2,${cvo.comment.id});|" class="text-primary">
+    <b th:text="${cvo.likeStatus==1?'已赞':'赞'}">赞</b>(<i th:text="${cvo.likeCount}">1</i>)
   </a>
   
   <!--回复点赞-->
-  <a href="javascript:;" th:onclick="**|like(this,2,${rvo.reply.id});|**" class="text-primary">
-    <b th:text="${**rvo.likeStatus==1?'已赞':'赞'**}">赞</b>(<i th:text="${rvo.likeCount}">1</i>)
+  <a href="javascript:;" th:onclick="|like(this,2,${rvo.reply.id});|" class="text-primary">
+    <b th:text="${rvo.likeStatus==1?'已赞':'赞'}">赞</b>(<i th:text="${rvo.likeCount}">1</i>)
   </a>
 ```
 
-  ## 我收到的赞（基于点赞基础上修改）
+## 我收到的赞（基于点赞基础上修改）
 
-    **注意：****1. 以用户为key, 记录点赞数量      2.opsForValue****.increment(key)****/****decrement(key)**
+ 注意：**1. 以用户为key, 记录点赞数量      2.opsForValue.increment(key) /decrement(key)**
 
-    ### 1.在工具类RedisKeyUtil添加方法
+### 1.在工具类RedisKeyUtil添加方法
 
-      **k:v =** **like:user:userId -> set(int)**
+**k:v =** **like:user:userId -> set(int)**
 
-```Java
+```java
     private static final String PREFIX_USER_LIKE = "like:user";
     
     /**
@@ -2988,9 +3141,9 @@ function like(btn, entityType, entityId) {
     }
 ```
 
-    ### 2.修改Service业务层（添加entityUserId属性，事务和查询获用户赞个数）
+### 2.修改Service业务层（添加entityUserId属性，事务和查询获用户赞个数）
 
-```Java
+```java
   @Autowired
   private RedisTemplate redisTemplate;
 
@@ -3024,25 +3177,25 @@ function like(btn, entityType, entityId) {
   }
 ```
 
-```Java
+```java
     // 查询某个用户获得的赞
     public int findUserLikeCount(int userId) {
         String userLikeKey = RedisKeyUtil.getUserLikeKey(userId);
-        // **注意这里Integet封装类型！！！！**
-        **Integer count = (Integer) redisTemplate.opsForValue().get(userLikeKey);**
+        // 注意这里Integet封装类型！！！！
+        Integer count = (Integer) redisTemplate.opsForValue().get(userLikeKey);
         return count == null ? 0 : count.intValue();
     }
 ```
 
-    ### 3.修改LikeController层（添加entityUserId属性）
+### 3.修改LikeController层（添加entityUserId属性）
 
-```Java
+```java
     @RequestMapping(value = "/like", method = RequestMethod.POST)
     @ResponseBody
-    public String like(int entityType, int entityId, int **entityUserId**){
+    public String like(int entityType, int entityId, int entityUserId){
         User user = hostHolder.getUser();
         // 点赞
-        likeService.like(user.getId(), entityType, entityId, **entityUserId**);
+        likeService.like(user.getId(), entityType, entityId, entityUserId);
         // 获取对应帖子、留言的点赞数量
         long likeCount = likeService.findEntityLikeCount(entityType, entityId);
         // 获取当前登录用户点赞状态（1：已点赞 0：赞）
@@ -3057,13 +3210,13 @@ function like(btn, entityType, entityId) {
     }
 ```
 
-    ### 4.同样在JS添加entityUserId属性
+### 4.同样在JS添加entityUserId属性
 
-```JavaScript
-function like(btn, entityType, entityId, **entityUserId**) {
+```javascript
+function like(btn, entityType, entityId, entityUserId) {
     $.post(
         CONTEXT_PATH + "/like",
-        {"entityType":entityType,"entityId":entityId,"**entityUserId":****entityUserId**},
+        {"entityType":entityType,"entityId":entityId,"entityUserId":entityUserId},
         function (data) {
             data = $.parseJSON(data);
             if (data.code == 0) {
@@ -3077,66 +3230,64 @@ function like(btn, entityType, entityId, **entityUserId**) {
 }
 ```
 
-    ### 5.编写个人主页UserController层
+### 5.编写个人主页UserController层
 
-```Java
+```java
     /**
      * 个人主页
      */
-    @RequestMapping(value = "/profile/**{userId}**", method = RequestMethod.GET)
+    @RequestMapping(value = "/profile/{userId}", method = RequestMethod.GET)
     public String getProfilePage(@PathVariable("userId") int userId, Model model) {
         User user = userService.findUserById(userId);
         if (user == null) {
             throw new RuntimeException("该用户不存在！");
         }
-        model.addAttribute("**user**", user);
+        model.addAttribute("user", user);
 
         // 进入某用户主页获取他(我)的点赞数量
         int likeCount = likeService.findUserLikeCount(userId);
-        model.addAttribute("**likeCount**", likeCount);
+        model.addAttribute("likeCount", likeCount);
         return "/site/profile";
     }
 ```
 
-    ### 6.编写前端个人主页（核心部分）
+### 6.编写前端个人主页（核心部分）
 
-```HTML
-<span>获得了 <i th:text="${**likeCount**}">87</i> 个赞</span>
+```html
+<span>获得了 <i th:text="${likeCount}">87</i> 个赞</span>
 
-<a th:href="@{|/user/profile/**${map.user.id}**|}">
+<a th:href="@{|/user/profile/${map.user.id}|}">
   点击头像进入某用户主页
 </a>
 ```
 
+# 关注功能（Redis+异步ajax）
 
+## 关注、取消关注
 
-  # 关注功能（Redis+异步ajax）
+### 1.编写工具类RedisKeyUtil统一关注Redis的key
 
-    ## 关注、取消关注
+关注：**k:v = followee:userId:entityType --> zset(entityId, date)**
 
-      ### 1.编写工具类RedisKeyUtil统一关注Redis的key
+粉丝：**k:v = follower:entityType:entityId -->zset(userId, date)**
 
-        **关注：****k:v = followee:userId:entityType --> zset(entityId, date)**
-
-        **粉丝：****k:v = follower:entityType:entityId -->zset(userId, date)**
-
-```Java
+```java
 public class RedisKeyUtil {
     // 关注
     private static final String PREFIX_FOLLOWEE = "followee";
     // 粉丝
     private static final String PREFIX_FOLLOWER = "follower";
     /**
-     * **某个用户关注的实体(用户，帖子)**
-     * **followee:userId:entityType --> zset(entityId, date)**
+     * 某个用户关注的实体(用户，帖子)
+     * followee:userId:entityType --> zset(entityId, date)
      */
     public static String getFolloweeKey(int userId, int entityType) {
         return PREFIX_FOLLOWEE + SPLIT + userId + SPLIT + entityType;
     }
 
     /**
-     * **某个实体拥有的粉丝**
-     * **follower:entityType:entityId -->zset(userId, date)**
+     * 某个实体拥有的粉丝
+     * follower:entityType:entityId -->zset(userId, date)
      */
     public static String getFollowerKey(int entityType, int entityId) {
         return PREFIX_FOLLOWER + SPLIT +entityType + SPLIT +entityId;
@@ -3144,13 +3295,13 @@ public class RedisKeyUtil {
 }
 ```
 
-      ### 2.编写Service层业务
+### 2.编写Service层业务
 
-```Java
+```java
     @Autowired
     private RedisTemplate redisTemplate;
 
-    /** 关注 **/
+    /**关注**/
     public void follow(int userId, int entityType, int entityId) {
         redisTemplate.execute(new SessionCallback() {
             @Override
@@ -3160,19 +3311,19 @@ public class RedisKeyUtil {
 
                 // 开启事务
                 redisOperations.multi();
-                /*
-                    System.currentTimeMillis()->用于获取当前系统时间,以毫秒为单位
-                    关注时，首先将实体(用户或帖子)id添加用户关注的集合中，再将用户id添加进实体粉丝的集合中
+                /**
+                 * System.currentTimeMillis()->用于获取当前系统时间,以毫秒为单位
+                 * 关注时，首先将实体(用户或帖子)id添加用户关注的集合中，再将用户id添加进实体粉丝的集合中
                  */
-                redisOperations.**opsForZSet().add**(followeeKey, entityId, System.currentTimeMillis());
-                redisOperations.**opsForZSet().add**(followerKey, userId, System.currentTimeMillis());
+                redisOperations.opsForZSet().add(followeeKey, entityId, System.currentTimeMillis());
+                redisOperations.opsForZSet().add(followerKey, userId, System.currentTimeMillis());
 
                 return redisOperations.exec();
             }
         });
     }
 
-    /** 取消关注 **/
+    /**取消关注**/
     public void unfollow(int userId, int entityType, int entityId) {
         redisTemplate.execute(new SessionCallback() {
             @Override
@@ -3181,64 +3332,65 @@ public class RedisKeyUtil {
                 String followerKey = RedisKeyUtil.getFollowerKey(entityType, entityId);
                 // 开启事务
                 redisOperations.multi();
-                /*关注时，首先将实体(用户或帖子)id移除用户关注的集合中，再将用户id移除进实体粉丝的集合中*/
-                redisOperations.**opsForZSet().remove**(followeeKey, entityId);
-                redisOperations.**opsForZSet().remove**(followerKey, userId);
+                /**关注时，首先将实体(用户或帖子)id移除用户关注的集合中，再将用户id移除进实体粉丝的集合中**/
+                redisOperations.opsForZSet().remove(followeeKey, entityId);
+                redisOperations.opsForZSet().remove(followerKey, userId);
 
                 return redisOperations.exec();
             }
         });
     }
 
-    /** 查询关注的实体(用户)数量 **/
+    /**查询关注的实体(用户)数量**/
     public long findFolloweeCount(int userId, int entityType) {
         String followeeKey = RedisKeyUtil.getFolloweeKey(userId, entityType);
         // opsForZSet().zCard获取有序集合中的数量
-        return redisTemplate.**opsForZSet().zCard**(followeeKey);
+        return redisTemplate.opsForZSet().zCard(followeeKey);
     }
 
-    /** 查询粉丝的实体数量 **/
+    /**查询粉丝的实体数量**/
     public long findFollowerCount(int entityType, int entityId) {
         String followerKey = RedisKeyUtil.getFollowerKey(entityType, entityId);
-        return redisTemplate.**opsForZSet().zCard**(followerKey);
+        return redisTemplate.opsForZSet().zCard(followerKey);
     }
 
-    /* 查询当前用户是否已关注该实体 **/
-    // userId->当前登录用户  entityType->用户类型（3） entityId->关注的用户id
+    /**查询当前用户是否已关注该实体**/
+    // userId->当前登录用户  entityType->用户类型 entityId->关注的用户id
     public boolean hasFollowed(int userId, int entityType, int entityId) {
         String followeeKey =RedisKeyUtil.getFolloweeKey(userId, entityType);
-        **/* opsForZSet().score 获取有序集合中指定元素权重分数  followee:userId:entityType = entityId的分数（这里是时间）
-           若有时间，则表明已关注；
-        */**
-        return redisTemplate.**opsForZSet().score**(followeeKey, entityId) != null;
+        /**
+         * opsForZSet().score 获取有序集合中指定元素权重分数  followee:userId:entityType = entityId的分数（这里是时间）
+         * 若有时间，则表明已关注；
+         */
+        return redisTemplate.opsForZSet().score(followeeKey, entityId) != null;
     }
 ```
 
-      ### 3.编写Controller层
+### 3.编写Controller层
 
-        #### 3.1关注与取消关注按钮的实现（FollowController）
+#### 3.1关注与取消关注按钮的实现（FollowController）
 
-```Java
-    **/** 关注 **/**
+```java
+    /**关注**/
     @RequestMapping(value = "/follow", method = RequestMethod.POST)
     @ResponseBody // 关注是异步请求
     public String follow(int entityType, int entityId) {
-        followService.follow(**hostHolder.getUser().getId()**, entityType, entityId);
+        followService.follow(hostHolder.getUser().getId(), entityType, entityId);
         return CommunityUtil.getJSONString(0,"已关注");
     }
 
-    **/** 取消关注 **/**
+    /**取消关注**/
     @RequestMapping(value = "/unfollow", method = RequestMethod.POST)
-    @ResponseBody **// 关注是异步请求**
+    @ResponseBody // 关注是异步请求
     public String unfollow(int entityType, int entityId) {
-        followService.unfollow(**hostHolder.getUser().getId()**, entityType, entityId);
+        followService.unfollow(hostHolder.getUser().getId(), entityType, entityId);
         return CommunityUtil.getJSONString(0,"已取消关注");
     }
 ```
 
-        #### 3.2主页中显示关注数量，粉丝数量（UserController）
+#### 3.2主页中显示关注数量，粉丝数量（UserController）
 
-```Java
+```java
     /**
      * 个人主页
      */
@@ -3251,13 +3403,13 @@ public class RedisKeyUtil {
         model.addAttribute("user", user);
         // 点赞数量
            ....
-        **// 关注数量(这里只考虑关注用户类型的情况)**
-        long followeeCount = followService.findFolloweeCount(**userId**, ENTITY_TYPE_USER);
+        // 关注数量(这里只考虑关注用户类型的情况)
+        long followeeCount = followService.findFolloweeCount(userId, ENTITY_TYPE_USER);
         model.addAttribute("followeeCount", followeeCount);
-        **// 粉丝数量**
-        long followerCount = followService.findFollowerCount(ENTITY_TYPE_USER, **userId**);
+        // 粉丝数量
+        long followerCount = followService.findFollowerCount(ENTITY_TYPE_USER, userId);
         model.addAttribute("followerCount", followerCount);
-        **// 是否已关注 (必须是用户登录的情况)**
+        // 是否已关注 (必须是用户登录的情况)
         boolean hasFollowed = false;
         if (hostHolder.getUser() != null) {
             hasFollowed = followService.hasFollowed(hostHolder.getUser().getId(), ENTITY_TYPE_USER, userId);
@@ -3268,9 +3420,9 @@ public class RedisKeyUtil {
     }
 ```
 
-      ### 4.编写JS异步请求和前端页面（核心部分）
+### 4.编写JS异步请求和前端页面（核心部分）
 
-```JavaScript
+```javascript
 $(function(){
   $(".follow-btn").click(follow);
 });
@@ -3278,11 +3430,11 @@ $(function(){
 function follow() {
   var btn = this;
   if($(btn).hasClass("btn-info")) {
-    **// 关注TA**
+    // 关注TA
     $.post(
       CONTEXT_PATH + "/follow",
-      **// "entityId":$(btn).prev().val() 获取btn按钮上一个的值**
-      {"entityType":3,**"entityId":$(btn).prev().val()**},
+      // "entityId":$(btn).prev().val() 获取btn按钮上一个的值
+      {"entityType":3,"entityId":$(btn).prev().val()},
       function (data) {
         data = $.parseJSON(data);
         if(data.code == 0) {
@@ -3291,10 +3443,10 @@ function follow() {
           alert(data.msg);
         }});
   } else {
-    **// 取消关注**
+    // 取消关注
     $.post(
       CONTEXT_PATH + "/unfollow",
-      {"entityType":3,**"entityId":$(btn).prev().val()**},
+      {"entityType":3,"entityId":$(btn).prev().val()},
       function(data) {
         data = $.parseJSON(data);
         if(data.code == 0) {
@@ -3305,23 +3457,23 @@ function follow() {
   }}
 ```
 
-```HTML
+```html
 <input type="hidden" id="entityId" th:value="${user.id}">
               <!-- hasFollowed为true:已关注 ->按钮变灰 ，false:未关注 ->按钮变蓝  -->
-<button type="button" th:class="**|**btn **${hasFollowed?'btn-secondary':'btn-info'}** btn-sm float-right mr-5 follow-btn**|**"
+<button type="button" th:class="|btn ${hasFollowed?'btn-secondary':'btn-info'} btn-sm float-right mr-5 follow-btn|"
               <!-- 只有登录过且当前登录用户不是看的自己的主页就显示已关注/关注TA -->
-    th:text="**${hasFollowed?'已关注':'关注TA'}**" th:if="**${loginUser!=null && loginUser.id!=user.id}**">关注TA</button>
+    th:text="${hasFollowed?'已关注':'关注TA'}" th:if="${loginUser!=null && loginUser.id!=user.id}">关注TA</button>
     
-<span>关注了 <a **th:text="${followeeCount}"**>5</a> 人</span>
-<span>关注者 <a **th:text="${followerCount}"**>123</a> 人</span>
+<span>关注了 <a th:text="${followeeCount}">5</a> 人</span>
+<span>关注者 <a th:text="${followerCount}">123</a> 人</span>
 ```
 
-    ## 关注列表（同粉丝列表）
+## 关注列表（同粉丝列表）
 
-      ### 1.编写Service层（查询某用户关注的人）
+### 1.编写Service层（查询某用户关注的人）
 
-```Java
-    /** 查询某用户关注的人 **/
+```java
+    /**查询某用户关注的人**/
     public List<Map<String, Object>> findFollowees(int userId, int offset, int limit){
         String followeeKey = RedisKeyUtil.getFolloweeKey(userId, ENTITY_TYPE_USER);
         // 按最新时间倒序查询目标用户id封装在set<Integet>中
@@ -3347,10 +3499,10 @@ function follow() {
     }
 ```
 
-      ### 2.编写Controller层
+### 2.编写Controller层
 
-```Java
-  **/** 查询某用户关注列表 **/**
+```java
+  /** 查询某用户关注列表**/
   @RequestMapping(value = "/followees/{userId}", method = RequestMethod.GET)
   public String getFollowees(@PathVariable("userId")int userId, Page page, Model model) {
       // 当前访问的用户信息
@@ -3369,7 +3521,7 @@ function follow() {
       if (userList != null) {
           for (Map<String, Object> map : userList) {
               User u = (User) map.get("user");
-              map.put("hasFollowed", **hasFollowed(u.getId())**);
+              map.put("hasFollowed", hasFollowed(u.getId()));
           }
       }
       model.addAttribute("users", userList);
@@ -3377,7 +3529,7 @@ function follow() {
       return "/site/followee";
   }
   
-  **/** 判端当前登录用户与关注、粉丝列表的关注关系 **/**
+  /**判端当前登录用户与关注、粉丝列表的关注关系**/
   private Boolean hasFollowed(int userId) {
       if (hostHolder.getUser() == null) {
           return false;
@@ -3387,19 +3539,17 @@ function follow() {
   }
 ```
 
-      ### 3.编写前端页面
+### 3.编写前端页面
 
-        **3.1 带参数路径跳转**
+**3.1 带参数路径跳转**
 
-```HTML
+```html
 <span>关注了 <a th:href="@{|/followees/${user.id}|}" th:text="${followeeCount}">5</a> 人</span>
 <span>关注者 <a th:href="@{|/followers/${user.id}|}" th:text="${followerCount}">123</a> 人</span>
-
 ```
 
-        **3.2  列表页面**
-
-```HTML
+**3.2  列表页面**
+```html
   <li th:each="map:${users}">
     <a th:href="@{|/user/profile/{map.user.id}|}">
       <img th:src="${map.user.headerUrl}"alt="用户头像" >
@@ -3418,48 +3568,48 @@ function follow() {
       </div>
     </div>
   </li>
-```
+````
 
-    # 系统通知功能（Kafka消息队列）
+# 系统通知功能（Kafka消息队列）
 
-      ## 发送系统通知功能（点赞、关注、评论时通知）
+## 发送系统通知功能（点赞、关注、评论时通知）
 
-        ### 1.编写Kafka消息队列事件Event实体类
+### 1.编写Kafka消息队列事件Event实体类
 
-```Java
+```java
 /**
- * Kafka消息队列事件（评论、点赞、关注事件）
- **/
+ * Kafka消息队列事件（评论、点赞、关注事件
+ */
 public class Event {
 
-    // **Kafka必要的主题变量**
+    // Kafka必要的主题变量
     private String topic;
-    // **发起事件的用户id**
+    // 发起事件的用户id
     private int userId;
-    // **用户发起事件的实体类型（评论、点赞、关注类型）**
+    // 用户发起事件的实体类型（评论、点赞、关注类型）
     private int entityType;
-    // **用户发起事件的实体(帖子、评论、用户)id**
+    // 用户发起事件的实体(帖子、评论、用户)id
     private int entityId;
-    // **被发起事件的用户id(被评论、被点赞、被关注用户)**
+    // 被发起事件的用户id(被评论、被点赞、被关注用户)
     private int entityUserId;
-    // **其他可扩充内容对应Comment中的content->显示用户xxx评论、点赞、关注了xxx**
+    // 其他可扩充内容对应Comment中的content->显示用户xxx评论、点赞、关注了xxx
     private Map<String, Object> data = new HashMap<>();
 
     public String getTopic() {
         return topic;
     }
 
-    // **注意这里所有set方法返回Event类型,变成****链式编程**
-    public **Event** setTopic(String topic) {
+    // 注意这里所有set方法返回Event类型,变成链式编程
+    public Event setTopic(String topic) {
         this.topic = topic;
-        **return this;**
+        return this;
     }
 
     public int getUserId() {
         return userId;
     }
 
-    public **Event** setUserId(int userId) {
+    public Event setUserId(int userId) {
         this.userId = userId;
         return this;
     }
@@ -3468,47 +3618,47 @@ public class Event {
         return entityType;
     }
 
-    public **Event** setEntityType(int entityType) {
+    public Event setEntityType(int entityType) {
         this.entityType = entityType;
-       ** return this;**
+        return this;
     }
 
     public int getEntityId() {
         return entityId;
     }
 
-    public **Event** setEntityId(int entityId) {
+    public Event setEntityId(int entityId) {
         this.entityId = entityId;
-        **return this;**
+        return this;
     }
 
     public int getEntityUserId() {
         return entityUserId;
     }
 
-    public **Event** setEntityUserId(int entityUserId) {
+    public Event setEntityUserId(int entityUserId) {
         this.entityUserId = entityUserId;
-        **return this;**
+        return this;
     }
 
     public Map<String, Object> getData() {
         return data;
     }
 
-    // **方便外界直接调用key-value,而不用再封装一下传整个Map集合**
-    public **Event** setData(**String key, Object value**) {
-       ** this.data.put(key, value);**
+    // 方便外界直接调用key-value,而不用再封装一下传整个Map集合
+    public Event setData(String key, Object value) {
+        this.data.put(key, value);
         return this;
     }
 }
 ```
 
-        ### 2.编写Kafka生产者
+### 2.编写Kafka生产者
 
-```Java
+```java
 /**
- * **Kafka事件生产者（主动调用）相当于一个开关**
- **/
+ * Kafka事件生产者（主动调用）相当于一个开关
+ */
 @Component
 public class EventProducer {
     @Autowired
@@ -3516,19 +3666,20 @@ public class EventProducer {
 
     // 处理事件
     public void fireMessage(Event event) {
-        // **将事件发布到指定的主题,内容为event对象转化的json格式字符串**
-        kafkaTemplate.send(event.getTopic(), **JSONObject.toJSONString(event)**);
+        // 将事件发布到指定的主题,内容为event对象转化的json格式字符串
+        kafkaTemplate.send(event.getTopic(), JSONObject.toJSONString(event));
     }
 }
 ```
 
-        ### 3.编写Kafka消费者
+### 3.编写Kafka消费者
 
-```Java
+```java
 /**
- * **Kafka事件消费者(被动调用)**
- * **对Message表扩充：1：系统通知，当生产者调用时，存入消息队列，消费者自动调用将event事件相关信息存入Message表**
- **/
+ * QQ:260602448--xumingyu
+ * Kafka事件消费者(被动调用)
+ * 对Message表扩充：1：系统通知，当生产者调用时，存入消息队列，消费者自动调用将event事件相关信息存入Message表
+ */
 @Component
 public class EventConsumer implements CommunityConstant {
 
@@ -3543,9 +3694,9 @@ public class EventConsumer implements CommunityConstant {
             logger.error("消息的内容为空!");
             return;
         }
-        **// 将record.value字符串格式转化为Event对象**
+        // 将record.value字符串格式转化为Event对象
         Event event = JSONObject.parseObject(record.value().toString(), Event.class);
-        // **注意：event中若data = null,是fastjson依赖版本的问题(不能太高1.0.xx)**
+        // 注意：event中若data = null,是fastjson依赖版本的问题(不能太高1.0.xx)
         if (event == null) {
             logger.error("消息格式错误!");
             return;
@@ -3580,22 +3731,22 @@ public class EventConsumer implements CommunityConstant {
 }
 ```
 
-        ### 4.在CommunityConstant添加Kafka主题静态常量
+### 4.在CommunityConstant添加Kafka主题静态常量
 
-```Java
+```java
 public interface CommunityConstant {
      /**
      * Kafka主题: 评论
      */
-    String **TOPIC**_COMMENT = "comment";
+    String TOPIC_COMMENT = "comment";
     /**
      * Kafka主题: 点赞
      */
-    String **TOPIC**_LIKE = "like";
+    String TOPIC_LIKE = "like";
     /**
      * Kafka主题: 关注
      */
-    String **TOPIC**_FOLLOW = "follow";
+    String TOPIC_FOLLOW = "follow";
     /**
      * 系统用户ID
      */
@@ -3603,9 +3754,9 @@ public interface CommunityConstant {
 }
 ```
 
-        ### 5.处理触发评论事件CommentController
+### 5.处理触发评论事件CommentController
 
-```Java
+```java
     @RequestMapping(value = "/add/{discussPostId}", method = RequestMethod.POST)
     public String addComment(@PathVariable("discussPostId") int discussPostId, Comment comment) {
         comment.setUserId(hostHolder.getUser().getId());
@@ -3614,20 +3765,20 @@ public interface CommunityConstant {
         commentService.addComment(comment);
         /**
          * 触发评论事件
-         * **评论完后，调用Kafka生产者，发送系统通知**
+         * 评论完后，调用Kafka生产者，发送系统通知
          */
-        **Event event = new Event()
+        Event event = new Event()
                 .setTopic(TOPIC_COMMENT)
                 .setEntityId(comment.getEntityId())
                 .setEntityType(comment.getEntityType())
                 .setUserId(hostHolder.getUser().getId())
-                .setData("postId", discussPostId);**
+                .setData("postId", discussPostId);
         /**
-         * **event.setEntityUserId要分情况设置被发起事件的用户id**
-         * **1.评论的是帖子，被发起事件（评论）的用户->该帖子发布人id**
-         * **2.评论的是用户的评论，被发起事件（评论）的用户->该评论发布人id**
+         * event.setEntityUserId要分情况设置被发起事件的用户id
+         * 1.评论的是帖子，被发起事件（评论）的用户->该帖子发布人id
+         * 2.评论的是用户的评论，被发起事件（评论）的用户->该评论发布人id
          */
-       ** if (comment.getEntityType() == ENTITY_TYPE_POST) {
+        if (comment.getEntityType() == ENTITY_TYPE_POST) {
             // 先找评论表对应的帖子id,在根据帖子表id找到发帖人id
             DiscussPost target = discussPostService.findDiscussPostById(comment.getEntityId());
             event.setEntityUserId(target.getUserId());
@@ -3636,22 +3787,22 @@ public interface CommunityConstant {
             event.setEntityUserId(target.getUserId());
 
         }
-        eventProducer.fireMessage(event);**
+        eventProducer.fireMessage(event);
         
         return "redirect:/discuss/detail/" + discussPostId;
     }
 ```
 
-        ### 6.处理触发关注事件FollowController
+### 6.处理触发关注事件FollowController
 
-```Java
+```java
     @RequestMapping(value = "/follow", method = RequestMethod.POST)
     @ResponseBody // 关注是异步请求
     public String follow(int entityType, int entityId) {
         followService.follow(hostHolder.getUser().getId(), entityType, entityId);
-       ** /**
+        /**
          * 触发关注事件
-         * ****关注完后，调用Kafka生产者，发送系统通知****
+         * 关注完后，调用Kafka生产者，发送系统通知
          */
         Event event = new Event()
             .setTopic(TOPIC_FOLLOW)
@@ -3659,20 +3810,20 @@ public interface CommunityConstant {
             .setEntityType(entityType)
             .setEntityId(entityId)
             .setEntityUserId(entityId);
-        // ****用户关注实体的id就是被关注的用户id->EntityId=EntityUserId****
-        eventProducer.fireMessage(event);**
+        // 用户关注实体的id就是被关注的用户id->EntityId=EntityUserId
+        eventProducer.fireMessage(event);
         
         return CommunityUtil.getJSONString(0, "已关注");
     }
 ```
 
-        ### 7.处理触发点赞事件LikeController
+### 7.处理触发点赞事件LikeController
 
-```Java
+```java
     @RequestMapping(value = "/like", method = RequestMethod.POST)
     @ResponseBody
-    **// 加了一个postId变量，对应的前端和js需要修改**
-    public String like(int entityType, int entityId, int entityUserId, **int postId**) {
+    // 加了一个postId变量，对应的前端和js需要修改
+    public String like(int entityType, int entityId, int entityUserId, int postId) {
         User user = hostHolder.getUser();
         // 点赞
         likeService.like(user.getId(), entityType, entityId, entityUserId);
@@ -3684,7 +3835,7 @@ public interface CommunityConstant {
         Map<String, Object> map = new HashMap<>();
         map.put("likeCount", likeCount);
         map.put("likeStatus", likeStatus);
-        **/**
+        /**
          * 触发点赞事件
          * 只有点赞完后，才会调用Kafka生产者，发送系统通知，取消点赞不会调用事件
          */
@@ -3695,33 +3846,33 @@ public interface CommunityConstant {
                     .setEntityType(entityType)
                     .setUserId(user.getId())
                     .setEntityUserId(entityUserId)
-                    .setData("postId", ****postId****);
-            // ****注意：****data里面存postId是因为点击查看后链接到具体帖子的页面
+                    .setData("postId", postId);
+            // 注意：data里面存postId是因为点击查看后链接到具体帖子的页面
             eventProducer.fireMessage(event);
-        }**
+        }
         return CommunityUtil.getJSONString(0, null, map);
     }
 ```
 
-```HTML
-<!--**对应的前端postId变量以及js的修改**-->
+```html
+<!--对应的前端postId变量以及js的修改-->
 <a 
-  th:onclick="|like(this,1,${post.id},${post.userId},**${post.id})**;|">
+  th:onclick="|like(this,1,${post.id},${post.userId},${post.id});|">
 </a>
-function like(btn, entityType, entityId, entityUserId, **postId**) {
+function like(btn, entityType, entityId, entityUserId, postId) {
   $.post(
       CONTEXT_PATH + "/like",
-      {"entityType": entityType, "entityId": entityId, "entityUserId": entityUserId, **"postId":postId**},
+      {"entityType": entityType, "entityId": entityId, "entityUserId": entityUserId, "postId":postId},
       function(data) {
       .....}
   );}
 ```
 
-      ## 查询系统通知
+## 查询系统通知
 
-        ### 1.编写Dao层接口(及Mapper.xml)
+### 1.编写Dao层接口(及Mapper.xml)
 
-```Java
+```java
 /**
  * 查询某个主题最新通知
  */
@@ -3735,13 +3886,13 @@ int selectNoticeCount(@Param("userId")int userId, @Param("topic")String topic);
  */
 int selectNoticeUnreadCount(@Param("userId")int userId, @Param("topic")String topic);
 /**
- * 分页查询某个主题的详情
- */
+* 分页查询某个主题的详情
+*/
 List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String topic, @Param("offset")int offset, @Param("limit")int limit);
 
 ```
 
-```SQL
+```sql
     <!--系统通知-->
     <select id="selectLatestNotice" resultType="Message">
         select <include refid="selectFields"></include>
@@ -3750,8 +3901,8 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
           select max(id) from message
           where status != 2
           and from_id = 1
-          and **to_id = #{userId}**
-          and **conversation_id = #{topic}**
+          and to_id = #{userId}
+          and conversation_id = #{topic}
         )
     </select>
 
@@ -3763,15 +3914,15 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
         and conversation_id = #{topic}
     </select>
 
-    **<!--topic为null时查询所有类系统未读通知--->**
+    <!--topic为null时查询所有类系统未读通知--->
     <select id="selectNoticeUnreadCount" resultType="int">
         select count(id) from message
         where status = 0
         and from_id = 1
         and to_id = #{userId}
-        **<if test="topic!=null">
+        <if test="topic!=null">
             and conversation_id = #{topic}
-        </if>**
+        </if>
     </select>
 
     <select id="selectNotices" resultType="Message">
@@ -3786,9 +3937,9 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
     </select>
 ```
 
-        ### 2.编写Service业务层
+### 2.编写Service业务层
 
-```Java
+```java
     public Message findLatestNotice(int userId, String topic) {
         return messageMapper.selectLatestNotice(userId, topic);
     }
@@ -3806,29 +3957,29 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
     }
 ```
 
-        ### 3.编写MessageController层
+### 3.编写MessageController层
 
-          #### 3.1查询系统通知接口（评论类通知、点赞类通知、关注类通知三种类似）
+#### 3.1查询系统通知接口（评论类通知、点赞类通知、关注类通知三种类似）
 
-```Java
+```java
     /**
      * 查询系统通知
      */
     @RequestMapping(value = "/notice/list", method = RequestMethod.GET)
     public String getNoticeList(Model model) {
         User user = hostHolder.getUser();
-        /** 查询评论类通知 **/
+        /**查询评论类通知**/
         Message message = messageService.findLatestNotice(user.getId(), TOPIC_COMMENT);
 
         if (message != null) {
             HashMap<String, Object> messageVO = new HashMap<>();
             messageVO.put("message", message);
 
-            // **转化message表中content为HashMap<k,v>类型**
+            // 转化message表中content为HashMap<k,v>类型
             String content = HtmlUtils.htmlUnescape(message.getContent());
             Map<String, Object> data = JSONObject.parseObject(content, HashMap.class);
             // 将content数据中的每一个字段都存入map
-            // **用于显示->用户[user] (评论、点赞、关注[entityType])...了你的(帖子、回复、用户[entityId]) 查看详情连接[postId]**
+            // 用于显示->用户[user] (评论、点赞、关注[entityType])...了你的(帖子、回复、用户[entityId]) 查看详情连接[postId]
             messageVO.put("user", userService.findUserById((Integer) data.get("userId")));
             messageVO.put("entityType", data.get("entityType"));
             messageVO.put("entityId", data.get("entityId"));
@@ -3844,7 +3995,7 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
             model.addAttribute("commentNotice", messageVO);
         }
 
-        /** 查询点赞类通知 **/
+        /**查询点赞类通知**/
         message = messageService.findLatestNotice(user.getId(), TOPIC_LIKE);
 
         if (message != null) {
@@ -3869,7 +4020,7 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
             model.addAttribute("likeNotice", messageVO);
         }
 
-        /** 查询关注类通知 **/
+        /**查询关注类通知**/
         message = messageService.findLatestNotice(user.getId(), TOPIC_FOLLOW);
 
         if (message != null) {
@@ -3894,10 +4045,10 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
             model.addAttribute("followNotice", messageVO);
         }
 
-        // **查询未读私信数量**
+        // 查询未读私信数量
         int letterUnreadCount = messageService.findLetterUnreadCount(user.getId(), null);
         model.addAttribute("letterUnreadCount", letterUnreadCount);
-        // **查询所有未读系统通知数量**
+        // 查询所有未读系统通知数量
         int noticeUnreadCount = messageService.findNoticeUnreadCount(user.getId(), null);
         model.addAttribute("noticeUnreadCount", noticeUnreadCount);
 
@@ -3905,9 +4056,9 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
     }
 ```
 
-          #### 3.2查询系统通知详情页接口
+#### 3.2查询系统通知详情页接口
 
-```Java
+```java
     /**
      * 查询系统通知详情页（分页）
      */
@@ -3944,7 +4095,7 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
         }
         model.addAttribute("notices", noticeVoList);
 
-        //**设置已读**(当打开这个页面是就更改status =1)
+        //设置已读(当打开这个页面是就更改status =1)
         List<Integer> ids = getLetterIds(noticeList);
         if (!ids.isEmpty()) {
             messageService.readMessage(ids);
@@ -3954,18 +4105,18 @@ List<Message> selectNotices(@Param("userId")int userId, @Param("topic")String to
     }
 ```
 
-        ### 4.通过AOP编程实现查询未读消息总数(私信消息+系统消息)
+### 4.通过AOP编程实现查询未读消息总数(私信消息+系统消息)
 
-          #### 4.1编写MessageInterceptor拦截器
+#### 4.1编写MessageInterceptor拦截器
 
-```Java
+```java
 @Component
 public class MessageInterceptor implements HandlerInterceptor {
     @Autowired
     private HostHolder hostHolder;
     @Autowired
     private MessageService messageService;
-    //** 查询未读消息总数(AOP),controller之后，渲染模板之前**
+    // 查询未读消息总数(AOP),controller之后，渲染模板之前
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         User user = hostHolder.getUser();
@@ -3973,44 +4124,44 @@ public class MessageInterceptor implements HandlerInterceptor {
             int letterUnreadCount = messageService.findLetterUnreadCount(user.getId(), null);
             int noticeUnreadCount = messageService.findNoticeUnreadCount(user.getId(), null);
 
-            modelAndView.addObject("**allUnreadCount**", letterUnreadCount + noticeUnreadCount);
+            modelAndView.addObject("allUnreadCount", letterUnreadCount + noticeUnreadCount);
         }
 }}
 
 // index页前端对应代码
 <li th:if="${loginUser!=null}">
   <a th:href="@{/letter/list}">消息
-    <span **th:text="${allUnreadCount!=0?allUnreadCount:''}"**>消息未读总数</span>
+    <span th:text="${allUnreadCount!=0?allUnreadCount:''}">消息未读总数</span>
   </a>
 </li>
 ```
 
-          #### 4.2注册拦截器
+#### 4.2注册拦截器
 
-```Java
+```java
   @Autowired
   private MessageInterceptor messageInterceptor;
   public void addInterceptors(InterceptorRegistry registry) {
       registry.addInterceptor(messageInterceptor)
-          .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");
+          .excludePathPatterns("/* */*.css", "/**/ *.js", "/* */*.png", "/ **/ *.jpg", "/* */*.jpeg");
   }
 ```
 
-        ### 5.编写前端页面（核心部分）
+### 5.编写前端页面（核心部分）
 
-          #### 5.1系统通知页
+#### 5.1系统通知页
 
-```HTML
+```html
 <li>
   <a class="active" th:href="@{/notice/list}">
     系统通知<span th:text="${noticeUnreadCount}" th:if="${noticeUnreadCount!=0}">系统通知未读数</span>
   </a>
 </li>
 
-**<!-- 通知列表 -->**
+<!-- 通知列表 -->
 <ul class="list-unstyled">
-   **<!--评论类通知-->
-**   <li th:if="${commentNotice!=null}">
+   <!--评论类通知-->
+   <li th:if="${commentNotice!=null}">
      <span th:text="${commentNotice.unreadCount!=0?commentNotice.unreadCount:''}">评论通知未读数</span>
      <img src="http://xxx.png" alt="通知图标">
       <h6>
@@ -4026,7 +4177,7 @@ public class MessageInterceptor implements HandlerInterceptor {
         </ul>
       </div>
    </li>
-   **<!--点赞类通知-->**
+   <!--点赞类通知-->
    <li th:if="${likeNotice!=null}">
         <span th:text="${likeNotice.unreadCount!=0?likeNotice.unreadCount:''}">3</span>
         <img src="http://like.png" alt="通知图标">
@@ -4047,7 +4198,7 @@ public class MessageInterceptor implements HandlerInterceptor {
           </div>
         </div>
       </li>
-   **<!--关注类通知-->**
+   <!--关注类通知-->
    <li th:if="${followNotice!=null}">
         <span th:text="${followNotice.unreadCount!=0?followNotice.unreadCount:''}">3</span>
         <img src="http://follow.png" class="mr-4 user-header" alt="通知图标">
@@ -4071,14 +4222,14 @@ public class MessageInterceptor implements HandlerInterceptor {
 </ul>
 ```
 
-          #### 5.2系统通知详情页
+#### 5.2系统通知详情页
 
-```HTML
+```html
 <div class="col-4 text-right">
   <button type="button" class="btn btn-secondary btn-sm" onclick="back();">返回</button>
 </div>
 
-**<!-- 通知列表 -->**
+<!-- 通知列表 -->
 <ul>
   <li th:each="map:${notices}">
     <img th:src="${map.fromUser.headerUrl}" alt="系统图标">
@@ -4088,27 +4239,27 @@ public class MessageInterceptor implements HandlerInterceptor {
         <small th:text="${#dates.format(map.notice.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-25 15:49:32</small>
       </div>
       <div>
-        **<!--显示评论信息-->**
-        **<span th:if="${topic.equals('comment')}">
+        <!--显示评论信息-->
+        <span th:if="${topic.equals('comment')}">
           用户
           <i th:utext="${map.user.username}">发起事件人</i>
           评论了你的<b th:text="${map.entityType==1?'帖子':'回复'}">帖子</b>,
           <a th:href="@{|/discuss/detail/${map.postId}|}">点击查看</a> !
-        </span>**
-        **<!--显示点赞信息-->**
-        **<span th:if="${topic.equals('like')}">
+        </span>
+        <!--显示点赞信息-->
+        <span th:if="${topic.equals('like')}">
           用户
           <i th:utext="${map.user.username}">发起事件人</i>
           点赞了你的<b th:text="${map.entityType==1?'帖子':'回复'}">帖子</b>,
           <a th:href="@{|/discuss/detail/${map.postId}|}">点击查看</a> !
-        </span>**
-        **<!--显示关注信息-->**
-        **<span th:if="${topic.equals('follow')}">
+        </span>
+        <!--显示关注信息-->
+        <span th:if="${topic.equals('follow')}">
           用户
           <i th:utext="${map.user.username}">发起事件人</i>
           关注了你,
           <a th:href="@{|/user/profile/${map.user.id}|}">点击查看</a> !
-        </span>**
+        </span>
       </div>
     </div>
   </li>
@@ -4121,13 +4272,11 @@ public class MessageInterceptor implements HandlerInterceptor {
 
 ```
 
-
-
 # 搜索功能（Elasticsearch+Kafka）
 
-  ## 1.编写实体类映射到Elasticsearch服务器
+## 1.编写实体类映射到Elasticsearch服务器
 
-```Java
+```java
 // Elasticsearch表名
 @Document(indexName = "discusspost", type = "_doc", shards = 6, replicas = 3)
 @Data
@@ -4164,26 +4313,26 @@ public class DiscussPost {
     private double score;
 ```
 
-  ## 2.编写xxxRepository接口继承ElasticsearchRepository<Class, Integer>
+## 2.编写xxxRepository接口继承ElasticsearchRepository\<Class, Integer>
 
-```Java
+```java
 /**
  * ElasticsearchRepository<DiscussPost, Integer>
  * DiscussPost：接口要处理的实体类
  * Integer：实体类中的主键是什么类型
  * ElasticsearchRepository：父接口，其中已经事先定义好了对es服务器访问的增删改查各种方法。Spring会给它自动做一个实现，我们直接去调就可以了。
- **/
+ */
 @Repository
 public interface DiscussPostRepository extends ElasticsearchRepository<DiscussPost, Integer> {
 }
 ```
 
-  ## 3.编写ElasticsearchService业务层
+## 3.编写ElasticsearchService业务层
 
-```Java
+```java
 /**
  * 用Elasticsearch服务器搜索帖子service
- **/
+ */
 @Service
 public class ElasticsearchService {
 
@@ -4193,19 +4342,19 @@ public class ElasticsearchService {
     @Autowired
     private ElasticsearchTemplate elasticTemplate;
 
-    public void **saveDiscussPost**(DiscussPost post) {
+    public void saveDiscussPost(DiscussPost post) {
         discussRepository.save(post);
     }
 
-    public void **deleteDiscussPost**(int id) {
+    public void deleteDiscussPost(int id) {
         discussRepository.deleteById(id);
     }
 
     /**
-     *** Elasticsearch高亮搜索
-     * current：当前页（不是offset起始页）**
+     * Elasticsearch高亮搜索
+     * current：当前页（不是offset起始页）
      */
-    public Page<DiscussPost> **searchDiscussPost**(String keyword, int current, int limit) {
+    public Page<DiscussPost> searchDiscussPost(String keyword, int current, int limit) {
         SearchQuery searchQuery = new NativeSearchQueryBuilder()
                 .withQuery(QueryBuilders.multiMatchQuery(keyword, "title", "content"))
                 .withSort(SortBuilders.fieldSort("type").order(SortOrder.DESC))
@@ -4276,17 +4425,17 @@ public class ElasticsearchService {
 }
 ```
 
-  ## 4.修改发布帖子和增加评论Controller
+## 4.修改发布帖子和增加评论Controller
 
-    **发布帖子时，将帖子异步提交到Elasticsearch服务器**
+发布帖子时，将帖子异步提交到Elasticsearch服务器
 
-    **增加评论时，将帖子异步提交到Elasticsearch服务器**
+增加评论时，将帖子异步提交到Elasticsearch服务器
 
-```Java
-**     /**
-     * Kafka主题: 发布帖子(常量接口)
-     */
-    String TOPIC_PUBILISH = "publish";**
+```java
+     /**
+      * Kafka主题: 发布帖子(常量接口)
+      */
+    String TOPIC_PUBILISH = "publish";
     
     /**--------------------------------------------------------**/
     @RequestMapping(value = "/add/{discussPostId}", method = RequestMethod.POST)
@@ -4294,13 +4443,13 @@ public class ElasticsearchService {
       // ............
       
      /**
-      * **增加评论时，将帖子异步提交到Elasticsearch服务器**
-      * **通过Kafka消息队列去提交，修改Elasticsearch中帖子的评论数**
-      **/
+      * 增加评论时，将帖子异步提交到Elasticsearch服务器
+      * 通过Kafka消息队列去提交，修改Elasticsearch中帖子的评论数
+      */
       //若评论为帖子类型时，才需要加入消息队列处理
       if (comment.getEntityType() == ENTITY_TYPE_POST) {
           event = new Event()
-                  .setTopic(**TOPIC_PUBILISH**)
+                  .setTopic(TOPIC_PUBILISH)
                   .setUserId(comment.getUserId())
                   .setEntityType(ENTITY_TYPE_POST)
                   .setEntityId(discussPostId);
@@ -4310,7 +4459,7 @@ public class ElasticsearchService {
     }
 ```
 
-```Java
+```java
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ResponseBody
     // 异步请求要加@ResponseBody,且不要在Controller层用Model
@@ -4318,11 +4467,11 @@ public class ElasticsearchService {
     //.................
     
     /**
-     * **发布帖子时，将帖子异步提交到Elasticsearch服务器**
-     * **通过Kafka消息队列去提交，将新发布的帖子存入Elasticsearch**
-     **/
+     * 发布帖子时，将帖子异步提交到Elasticsearch服务器
+     * 通过Kafka消息队列去提交，将新发布的帖子存入Elasticsearch
+     */
     Event event = new Event()
-            .setTopic(**TOPIC_PUBILISH**)
+            .setTopic(TOPIC_PUBILISH)
             .setUserId(user.getId())
             .setEntityType(ENTITY_TYPE_POST)
             .setEntityId(post.getId());
@@ -4333,13 +4482,13 @@ public class ElasticsearchService {
     }
 ```
 
-  ## 5.在消费组件中增加方法（消费帖子发布事件）
+## 5.在消费组件中增加方法（消费帖子发布事件）
 
-```Java
+```java
     /**
-     * **消费帖子发布事件，将新增的帖子和添加评论后帖子评论数通过消息队列的方式save进Elastisearch服务器中**
+     * 消费帖子发布事件，将新增的帖子和添加评论后帖子评论数通过消息队列的方式save进Elastisearch服务器中
      */
-    @KafkaListener(topics = {**TOPIC_PUBILISH**})
+    @KafkaListener(topics = {TOPIC_PUBILISH})
     public void handleDiscussPostMessage(ConsumerRecord record) {
         if (record == null || record.value() == null) {
             logger.error("消息的内容为空!");
@@ -4353,14 +4502,14 @@ public class ElasticsearchService {
             return;
         }
 
-**        DiscussPost post = discussPostService.findDiscussPostById(event.getEntityId());
-        elasticsearchService.saveDiscussPost(post);**
+        DiscussPost post = discussPostService.findDiscussPostById(event.getEntityId());
+        elasticsearchService.saveDiscussPost(post);
     }
 ```
 
-  ## 6.编写SearchController类
+## 6.编写SearchController类
 
-```Java
+```java
 @Controller
 public class SearchController implements CommunityConstant {
     @Autowired
@@ -4374,9 +4523,9 @@ public class SearchController implements CommunityConstant {
     @RequestMapping(value = "/search", method = RequestMethod.GET)
     public String search(String keyword, Page page, Model model) {
         // 搜索帖子
-        // 在调用elasticsearchService完成搜索的时候，查询条件设置的是从第几页开始，所以要**填getCurrent**，填getOffset会导致翻页的时候查询错误
+        // 在调用elasticsearchService完成搜索的时候，查询条件设置的是从第几页开始，所以要填getCurrent，填getOffset会导致翻页的时候查询错误
         org.springframework.data.domain.Page<DiscussPost> searchResult =
-                elasticsearchService.searchDiscussPost(keyword, **page.getCurrent() - 1**, page.getLimit());
+                elasticsearchService.searchDiscussPost(keyword, page.getCurrent() - 1, page.getLimit());
         // 聚合数据
         List<Map<String, Object>> discussPosts = new ArrayList<>();
 
@@ -4404,18 +4553,18 @@ public class SearchController implements CommunityConstant {
 }
 ```
 
-  ## 7.编写前端页面（核心部分）
+## 7.编写前端页面（核心部分）
 
-```HTML
+```html
   <!-- 搜索表单 -->
-  <form method="get" **th:action="@{/search}"**>
+  <form method="get" th:action="@{/search}">
     <!--th:value->设置默认值  model.addAttribute("keyword", keyword) -->
-    <input type="search" aria-label="Search" **name="keyword"** **th:value="${keyword}"**/>
+    <input type="search" aria-label="Search" name="keyword" th:value="${keyword}"/>
     <button type="submit">搜索</button>
   </form>
 ```
 
-```HTML
+```html
 <li th:each="map:${discussPosts}">
   <img th:src="${map.user.headerUrl}" alt="用户头像" style="width:50px;height:50px">
   <div>
@@ -4438,31 +4587,30 @@ public class SearchController implements CommunityConstant {
 
 # 权限控制
 
-  ## 部署SpringSecurity权限控制
+## 部署SpringSecurity权限控制
 
-    ### 1.配置SecurityConfig类
+### 1.配置SecurityConfig类
 
-      **登录检查：废弃之前的拦截器配置，采用SpringSecurity**
+**登录检查：废弃之前的拦截器配置，采用SpringSecurity**
 
-      **权限配置：对所有请求分配访问权限**
+**权限配置：对所有请求分配访问权限**
 
-```Java
+```java
 /**
- * **springsecurity配置**
- * **之所以没有configure(AuthenticationManagerBuilder auth)，是因为要绕过security自带的方案****
-** * @author xumingyu
- **/
-**@Configuration**
+ * springsecurity配置
+ * 之所以没有configure(AuthenticationManagerBuilder auth)，是因为要绕过security自带的方案
+ */
+@Configuration
 public class SecurityConfig extends WebSecurityConfigurerAdapter implements CommunityConstant {
 
     @Override
-    public void **configure(WebSecurity web)** throws Exception {
+    public void configure(WebSecurity web) throws Exception {
         // 忽略静态资源
-        web.ignoring().antMatchers("/resources/**");
+        web.ignoring().antMatchers("/resources/* *");
     }
 
     @Override
-    protected void **configure(HttpSecurity http)** throws Exception {
+    protected void configure(HttpSecurity http) throws Exception {
         // 授权
         http.authorizeRequests()
                 // 需要授权的请求
@@ -4470,9 +4618,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
                         "/user/setting",
                         "/user/upload",
                         "/discuss/add",
-                        "/comment/add/**",
-                        "/letter/**",
-                        "/notice/**",
+                        "/comment/add/* *",
+                        "/letter/* *",
+                        "/notice/* *",
                         "/like",
                         "/follow",
                         "/unfollow"
@@ -4484,15 +4632,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
                         AUTHORITY_MODERATOR
                 )
                 // 其他请求方行
-                **.anyRequest().permitAll()**
+                .anyRequest().permitAll()
                 // 禁用 防止csrf攻击功能
                 .and().csrf().disable();
 
 
-        **// 权限不够时的处理**
+        // 权限不够时的处理
         http.exceptionHandling()
                 .authenticationEntryPoint(new AuthenticationEntryPoint() {
-                    **// 没有登录**
+                    // 没有登录
                     @Override
                     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException e) throws IOException, ServletException {
                         // 同步请求重定向返回HTML，异步请求返回json
@@ -4507,7 +4655,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
                         }
                     }
                 })
-                **// 权限不足**
+                // 权限不足
                 .accessDeniedHandler(new AccessDeniedHandler() {
                     @Override
                     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException e) throws IOException, ServletException {
@@ -4522,19 +4670,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
                     }
                 });
 
-       ** // Security底层默认会拦截/logout请求,进行退出处理.
+        // Security底层默认会拦截/logout请求,进行退出处理.
         // 覆盖它默认的逻辑,才能执行我们自己的退出代码.
-        //底层：private String logoutUrl = "/logout";**
+        //底层：private String logoutUrl = "/logout";
         http.logout().logoutUrl("/securitylogout");
     }
 }
 ```
 
-    ### 2.编写UserService增加自定义登录认证方法绕过security自带认证流程
+### 2.编写UserService增加自定义登录认证方法绕过security自带认证流程
 
-```Java
+```java
     /**绕过Security认证流程，采用原来的认证方案,封装认证结果**/
-    public **Collection<? extends GrantedAuthority> getAuthorities**(int userId) {
+    public Collection<? extends GrantedAuthority> getAuthorities(int userId) {
         User user = this.findUserById(userId);
 
         List<GrantedAuthority> list = new ArrayList<>();
@@ -4555,14 +4703,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
     }
 ```
 
-    ### 3.编写登录凭证拦截器LoginTicketInterceptor
+### 3.编写登录凭证拦截器LoginTicketInterceptor
 
-      **构建用户认证结果,并存入SecurityContext,以便于Security进行授权**
+构建用户认证结果,并存入SecurityContext,以便于Security进行授权
 
-```Java
+```java
     @Override
     /**在Controller访问所有路径之前获取凭证**/
-    public boolean **preHandle**(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
       //...................................
       
       if (loginTicket != null && loginTicket.getStatus() == 0 && loginTicket.getExpired().after(new Date())) {
@@ -4570,23 +4718,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
         /**
          * 构建用户认证结果,并存入SecurityContext,以便于Security进行授权
          */
-        **Authentication authentication = new UsernamePasswordAuthenticationToken(
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user, user.getPassword(), userService.getAuthorities(user.getId()));
         SecurityContextHolder.setContext(new SecurityContextImpl(authentication));
-      **}
+      }
     }
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         // 释放线程资源
         hostHolder.clear();
-        **// 释放SecurityContext资源**
-        **SecurityContextHolder.clearContext();**
+        // 释放SecurityContext资源
+        SecurityContextHolder.clearContext();
     }
 ```
 
-    ### 4.退出登录时释放**SecurityContext资源**
+### 4.退出登录时释放SecurityContext资源
 
-```Java
+```java
     /**
      * 退出登录功能
      */
@@ -4594,28 +4742,28 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter implements Comm
     public String logout(@CookieValue("ticket") String ticket) {
         userService.logout(ticket);
         // 释放SecurityContext资源
-        **SecurityContextHolder.clearContext();**
+        SecurityContextHolder.clearContext();
         return "redirect:/login";
     }
 ```
 
-    ### 5.注意：防止CSRF攻击
+### 5.注意：防止CSRF攻击
 
-      **CSRF攻击原理**
+CSRF攻击原理
 
-      ![](https://secure2.wostatic.cn/static/dYZ7SYhUU8sLW2n9PhYoFs/防止CSRF攻击.PNG)
+![](image/防止CSRF攻击_rVHfT_BFS2.PNG)
 
-      **由于服务端SpringSecurity自带防止CSRF攻击，因此只要编写前端页面防止CSRF攻击即可****（常发生在提交表单时）**
+由于服务端SpringSecurity自带防止CSRF攻击，因此只要编写前端页面防止CSRF攻击即可 \ （常发生在提交表单时）
 
-```HTML
+```html
   <!--访问该页面时,在此处生成CSRF令牌.-->
   <meta name="_csrf" th:content="${_csrf.token}">
   <meta name="_csrf_header" th:content="${_csrf.headerName}">
 ```
 
-      **Ajax异步请求时携带该参数**
+**Ajax异步请求时携带该参数**
 
-```JavaScript
+```javascript
 function publish() {
    $("#publishModal").modal("hide");
    // 发送AJAX请求之前,将CSRF令牌设置到请求的消息头中.
@@ -4628,15 +4776,15 @@ function publish() {
 }
 ```
 
-  ## 置顶、加精、删除
+## 置顶、加精、删除
 
-    ### 1.编写Mapper、Service层
+### 1.编写Mapper、Service层
 
-      **思路：改变帖子状态**
+思路：改变帖子状态
 
-      **置顶：type = (0-正常，1-置顶）   加精：status = (0-正常，1-加精，2-删除)**
+置顶：type = (0-正常，1-置顶）   加精：status = (0-正常，1-加精，2-删除)
 
-```SQL
+```sql
     int updateType(@Param("id")int id,@Param("type") int type);
     int updateStatus(@Param("id")int id,@Param("status") int status);
     
@@ -4645,7 +4793,7 @@ function publish() {
         update discuss_post set type = #{type} where id = #{id}
     </update>
     <update id="updateStatus">
-        update discuss_post set status = #{status} ~~where~~ id = #{id}
+        update discuss_post set status = #{status} where id = #{id}
     </update>
     
     <!--------------------Service层------------------------->
@@ -4658,16 +4806,16 @@ function publish() {
     }
 ```
 
-    ### 2.编写DiscussPostController层
+### 2.编写DiscussPostController层
 
-```Java
-    **// 置顶、取消置顶(与以下类似)**
+```java
+    // 置顶、取消置顶(与以下类似)
     @RequestMapping(value = "/top", method = RequestMethod.POST)
     @ResponseBody
     public String setTop(int id) {
         DiscussPost post = discussPostService.findDiscussPostById(id);
         // 获取置顶状态，1为置顶，0为正常状态,1^1=0 0^1=1
-        int type = **post.getType() ^ 1**;
+        int type = post.getType() ^ 1;
         discussPostService.updateType(id, type);
         // 返回结果给JS异步请求
         HashMap<String, Object> map = new HashMap<>();
@@ -4684,12 +4832,12 @@ function publish() {
         return CommunityUtil.getJSONString(0, null, map);
     }
 
-   ** // 加精、取消加精**
+    // 加精、取消加精
     @RequestMapping(value = "/wonderful", method = RequestMethod.POST)
     @ResponseBody
     public String setWonderful(int id) {
         DiscussPost post = discussPostService.findDiscussPostById(id);
-        int status = **post.getStatus() ^ 1**;
+        int status = post.getStatus() ^ 1;
         discussPostService.updateStatus(id, status);
         // 返回结果给JS异步请求
         HashMap<String, Object> map = new HashMap<>();
@@ -4706,7 +4854,7 @@ function publish() {
         return CommunityUtil.getJSONString(0, null, map);
     }
 
-    **// 删除**
+    // 删除
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     @ResponseBody
     public String setDelete(int id) {
@@ -4724,9 +4872,9 @@ function publish() {
     }
 ```
 
-    ### 3.编写Kafka消费者中删除（TOPIC_DELETE）的主题事件
+### 3.编写Kafka消费者中删除（TOPIC\_DELETE）的主题事件
 
-```Java
+```java
     /**帖子删除事件**/
     @KafkaListener(topics = {TOPIC_DELETE})
     public void handleDeleteMessage(ConsumerRecord record) {
@@ -4741,19 +4889,19 @@ function publish() {
             logger.error("消息格式错误!");
             return;
         }
-        **elasticsearchService.deleteDiscussPost(event.getEntityId());**
+        elasticsearchService.deleteDiscussPost(event.getEntityId());
     }
 ```
 
-    ### 4.在SecurityConfig中给予（置顶、加精、删除）权限
+### 4.在SecurityConfig中给予（置顶、加精、删除）权限
 
-```Java
+```java
   // 授权
   http.authorizeRequests()
           // 需要授权的请求
           // ...............
           )
-          **.antMatchers(
+          .antMatchers(
                   "/discuss/top",
                   "/discuss/wonderful"
           )
@@ -4764,7 +4912,7 @@ function publish() {
                   "/discuss/delete"
           )
           .hasAnyAuthority(
-                  AUTHORITY_ADMIN // 管理员授予删除帖子权限**
+                  AUTHORITY_ADMIN // 管理员授予删除帖子权限
           )
           // 其他请求方行
           .anyRequest().permitAll()
@@ -4772,38 +4920,38 @@ function publish() {
           .and().csrf().disable();
 ```
 
-    ### 5.编写前端代码（核心部分）
+### 5.编写前端代码（核心部分）
 
-      #### **5.1引用pom.xml，使用sec:xxx**
+#### 5.1引用pom.xml，使用sec:xxx
 
-```XML
+```xml
   <dependency>
       <groupId>org.thymeleaf.extras</groupId>
       <artifactId>thymeleaf-extras-springsecurity5</artifactId>
   </dependency>
 ```
 
-      #### **5.2 引入thymeleaf支持security的头文件**
+#### 5.2 引入thymeleaf支持security的头文件
 
-```HTML
+```html
 <html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 ```
 
-```HTML
+```html
 <div>
-  <input **type="hidden"** id="**postId**" th:value="${post.id}">
-  <button type="button" class="btn" **id="topBtn"**
-      th:text="${post.type==1?'取消置顶':'置顶'}" **sec:authorize="hasAnyAuthority('moderator')"**>置顶</button>
-  <button type="button" class="btn" **id="wonderfulBtn"**
-      th:text="${post.status==1?'取消加精':'加精'}" **sec:****authorize="hasAnyAuthority('moderator')"**>加精</button>
-  <button type="button" class="btn" **id="deleteBtn"**
-      th:disabled="${post.status==2}" **sec:****authorize="hasAnyAuthority('admin')**">删除</button>
+  <input type="hidden" id="postId" th:value="${post.id}">
+  <button type="button" class="btn" id="topBtn"
+      th:text="${post.type==1?'取消置顶':'置顶'}" sec:authorize="hasAnyAuthority('moderator')">置顶</button>
+  <button type="button" class="btn" id="wonderfulBtn"
+      th:text="${post.status==1?'取消加精':'加精'}" sec:authorize="hasAnyAuthority('moderator')">加精</button>
+  <button type="button" class="btn" id="deleteBtn"
+      th:disabled="${post.status==2}" sec:authorize="hasAnyAuthority('admin')">删除</button>
 </div>
 ```
 
-      #### 5.3 编写JS中的异步Ajax请求
+#### 5.3 编写JS中的异步Ajax请求
 
-```JavaScript
+```javascript
 // 页面加载完以后调用
 $(function(){
     $("#topBtn").click(setTop);
@@ -4815,7 +4963,7 @@ $(function(){
 function setTop() {
     $.post(
         CONTEXT_PATH + "/discuss/top",
-        {"id":**$("#postId").val()**},
+        {"id":$("#postId").val()},
         function(data) {
             data = $.parseJSON(data);
             if(data.code == 0) {
@@ -4860,23 +5008,21 @@ function setDelete() {
 }
 ```
 
-  
-
 # 网站数据统计（Redis：HyperLogLog、BitMap）
 
-  ## 1.编写RedisUtil规范Key值
+## 1.编写RedisUtil规范Key值
 
-```Java
-    **// UV (网站访问用户数量---根据Ip地址统计(包括没有登录的用户))**
+```java
+    // UV (网站访问用户数量---根据Ip地址统计(包括没有登录的用户))
     private static final String PREFIX_UV = "uv";
-    **// DAU (活跃用户数量---根据userId)**
+    // DAU (活跃用户数量---根据userId)
     private static final String PREFIX_DAU = "dau";
     
     /**
-     * **存储单日ip访问数量（uv）--HyperLogLog ---k:时间 v:ip  (HyperLogLog)**
+     * 存储单日ip访问数量（uv）--HyperLogLog ---k:时间 v:ip  (HyperLogLog)
      * 示例：uv:20220526 = ip1,ip2,ip3,...
      */
-    public static String getUVKey(**String date**) {
+    public static String getUVKey(String date) {
         return PREFIX_UV + SPLIT + date;
     }
 
@@ -4884,12 +5030,12 @@ function setDelete() {
      * 获取区间ip访问数量（uv）
      * 示例：uv:20220525:20220526 = ip1,ip2,ip3,...
      */
-    public static String getUVKey(**String startDate, String endDate**) {
+    public static String getUVKey(String startDate, String endDate) {
         return PREFIX_UV + SPLIT + startDate + SPLIT + endDate;
     }
 
     /**
-     * **存储单日活跃用户（dau）--BitMap ---k:date v:userId索引下为true  (BitMap)**
+     * 存储单日活跃用户（dau）--BitMap ---k:date v:userId索引下为true  (BitMap)
      * 示例：dau:20220526 = userId1索引--(true),userId2索引--(true),....
      */
     public static String getDAUKey(String date) {
@@ -4898,27 +5044,27 @@ function setDelete() {
 
     /**
      * 获取区间活跃用户
-     * 示例：dau:20220526:20220526 
+     * 示例：dau:20220526:20220526
      */
     public static String getDAUKey(String startDate, String endDate) {
         return PREFIX_DAU + SPLIT + startDate + SPLIT + endDate;
     }
 ```
 
-  ## 2.编写DataService业务层
+## 2.编写DataService业务层
 
-```Java
+```java
     @Autowired
     private RedisTemplate redisTemplate;
 
     // 将Date类型转化为String类型
-    **private SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");**
+    private SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
     
-    /*********************** **HypeLogLog** *************************/
+    /*********************** HypeLogLog*************************/
     // 将指定ip计入UV---k:当前时间 v:ip
     public void recordUV(String ip) {
         String redisKey = RedisKeyUtil.getUVKey(df.format(new Date()));
-        redisTemplate.**opsForHyperLogLog().add**(redisKey, ip);
+        redisTemplate.opsForHyperLogLog().add(redisKey, ip);
     }
 
     // 统计指定日期范围内的ip访问数UV
@@ -4930,7 +5076,7 @@ function setDelete() {
             throw new IllegalArgumentException("请输入正确的时间段！");
         }
         // 整理该日期范围内的Key
-      **  List<String> keyList = new ArrayList<>();
+        List<String> keyList = new ArrayList<>();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(start);
         while (!calendar.getTime().after(end)) {
@@ -4939,21 +5085,21 @@ function setDelete() {
             keyList.add(key);
             // 日期+1(按照日历格式)
             calendar.add(Calendar.DATE, 1);
-        }**
+        }
         // 合并日期范围内相同的ip
         String redisKey = RedisKeyUtil.getUVKey(df.format(start), df.format(end));
         // 获取keyList中的每一列key进行合并
-        redisTemplate.**opsForHyperLogLog().union**(redisKey, keyList.toArray());
+        redisTemplate.opsForHyperLogLog().union(redisKey, keyList.toArray());
 
         // 返回统计结果
-        return redisTemplate.**opsForHyperLogLog().size**(redisKey);
+        return redisTemplate.opsForHyperLogLog().size(redisKey);
     }
 
-    /*********************** **BitMap** *****************************/
+    /*********************** BitMap *****************************/
     // 将指定用户计入DAU --k:当前时间 v:userId
     public void recordDAU(int userId) {
         String redisKey = RedisKeyUtil.getDAUKey(df.format(new Date()));
-        redisTemplate.**opsForValue().setBit**(redisKey, userId, true);
+        redisTemplate.opsForValue().setBit(redisKey, userId, true);
     }
 
     // 统计指定日期范围内的DAU日活跃用户
@@ -4975,21 +5121,21 @@ function setDelete() {
             calendar.add(Calendar.DATE, 1);
         }
 
-        **// 进行OR运算**
-        return (long) **redisTemplate.execute(new RedisCallback()** {
+        // 进行OR运算
+        return (long) redisTemplate.execute(new RedisCallback() {
             @Override
             public Object doInRedis(RedisConnection connection) throws DataAccessException {
                 String redisKey = RedisKeyUtil.getDAUKey(df.format(start), df.format(end));
 
-                **connection.bitOp(RedisStringCommands.BitOperation.OR,** redisKey.getBytes(), keyList.toArray(new byte[0][0]));
+                connection.bitOp(RedisStringCommands.BitOperation.OR, redisKey.getBytes(), keyList.toArray(new byte[0][0]));
                 return connection.bitCount(redisKey.getBytes());
             }
         });}
 ```
 
-  ## 3.在DataInterceptor拦截器中调用Service(每次请求最开始调用)
+## 3.在DataInterceptor拦截器中调用Service(每次请求最开始调用)
 
-```Java
+```java
 @Component
 public class DataInterceptor implements HandlerInterceptor {
 
@@ -4997,61 +5143,61 @@ public class DataInterceptor implements HandlerInterceptor {
     private DataService dataService;
     @Autowired
     private HostHolder hostHolder;
-    **// 在所有请求之前存用户访问数和日活跃人数**
+    // 在所有请求之前存用户访问数和日活跃人数
     @Override
-    public boolean **preHandle**(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 获取请求用户的ip地址，统计UV
-        String ip = **request.getRemoteHost**();
+        String ip = request.getRemoteHost();
         dataService.recordUV(ip);
 
         // 统计DAU
-        User user = **hostHolder.getUser**();
+        User user = hostHolder.getUser();
         if (user != null) {
             dataService.recordDAU(user.getId());
         }
         return true;
     }
 }
-/*******************************注册拦截器***********************************/
+/*****************************注册拦截器*********************************/
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
-    private **DataInterceptor dataInterceptor**;
+    private DataInterceptor dataInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(**dataInterceptor**)
-          .excludePathPatterns("/**/*.css", "/**/*.js", "/**/*.png", "/**/*.jpg", "/**/*.jpeg");
+        registry.addInterceptor(dataInterceptor)
+          .excludePathPatterns("/* */*.css", "/ **/ *.js", "/* */*.png", "/**/ *.jpg", "/* */*.jpeg");
     }
 }
 ```
 
-  ## 4.编写DataController用以渲染模板
+## 4.编写DataController用以渲染模板
 
-```Java
+```java
     /**
      * 统计页面
-     **/
+     */
     @RequestMapping(value = "/data", method = {RequestMethod.GET, RequestMethod.POST})
     public String getDataPage() {
         return "/site/admin/data";
     }
     /**
      * 统计网站UV(ip访问数量)
-     * **@DateTimeFormat将时间参数转化为字符串**
+     * @DateTimeFormat将时间参数转化为字符串
      */
     @RequestMapping(path = "/data/uv", method = RequestMethod.POST)
-    public String getUV(**@DateTimeFormat**(pattern = "yyyy-MM-dd") Date start, **@DateTimeFormat**(pattern = "yyyy-MM-dd") Date end, Model model) {
+    public String getUV(@DateTimeFormat(pattern = "yyyy-MM-dd") Date start, @DateTimeFormat(pattern = "yyyy-MM-dd") Date end, Model model) {
         long uv = dataService.calculateUV(start, end);
         model.addAttribute("uvResult", uv);
         model.addAttribute("uvStartDate", start);
         model.addAttribute("uvEndDate", end);
-        // **转发到 /data请求**
+        // 转发到 /data请求
         return "forward:/data";
     }
     /**
      * 统计网站DAU(登录用户访问数量)
-     **/
+     */
     @RequestMapping(path = "/data/dau", method = RequestMethod.POST)
     public String getDAU(@DateTimeFormat(pattern = "yyyy-MM-dd") Date start, @DateTimeFormat(pattern = "yyyy-MM-dd") Date end, Model model) {
         long dau = dataService.calculateDAU(start, end);
@@ -5062,75 +5208,71 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 ```
 
-  ## 5.编写SecurityConfig进行权限控制
+## 5.编写SecurityConfig进行权限控制
 
-```Java
+```java
     .antMatchers(
             "/discuss/delete",
-          **  "/data/**"**
+            "/data/* *"
     )
     .hasAnyAuthority(
-            **AUTHORITY_ADMIN**
+            AUTHORITY_ADMIN
     )
 ```
 
-  ## 6.编写前端管理员专用页面（核心部分）
+## 6.编写前端管理员专用页面（核心部分）
 
-```HTML
+```html
   <!-- 网站UV (活跃用户类似)--> 
   <div>
       <h6> 网站 访问人数</h6>
-      <form method="post" th:action="**@{/data/uv}**">
-          <input **name="start"** th:value="${#dates.format(**uvStartDate**,'yyyy-MM-dd')}" type="date"/>
-          <input **name="end"** th:value="${#dates.format(**uvEndDate**,'yyyy-MM-dd')}" type="date"/>
+      <form method="post" th:action="@{/data/uv}">
+          <input name="start" th:value="${#dates.format(uvStartDate,'yyyy-MM-dd')}" type="date"/>
+          <input name="end" th:value="${#dates.format(uvEndDate,'yyyy-MM-dd')}" type="date"/>
           <button type="submit">开始统计</button>
       </form>
       <li>
           统计结果
-          <span **th:text="${uvResult}"**>访问人数</span>
+          <span th:text="${uvResult}">访问人数</span>
       </li> 
   </div>
 ```
 
-
-
-
-
 # 热帖排行（Quartz线程池、Redis）
 
-  ## 1.编写RedisUtil规范Key值
+## 1.编写RedisUtil规范Key值
 
-```Java
-    // 热帖分数 (**把需要更新的帖子id存入Redis当作缓存**)
+```java
+    // 热帖分数 (把需要更新的帖子id存入Redis当作缓存)
     private static final String PREFIX_POST = "post";
     
     /**
-     * 帖子分数 (发布、点赞、加精、评论时放入)
+     *  帖子分数 (发布、点赞、加精、评论时放入)
      */
     public static String getPostScore() {
         return PREFIX_POST + SPLIT + "score";
     }
 ```
 
-  ## 2.处理发布、点赞、加精、评论时计算分数，将帖子id存入Key
+## 2.处理发布、点赞、加精、评论时计算分数，将帖子id存入Key
 
-    ### 2.1发布帖子时初始化分数
+### 2.1发布帖子时初始化分数
 
-```Java
+```java
       /**
-       *** 计算帖子分数
-       * 将****新发布****的帖子****id****存入****set****去重的redis集合------****addDiscussPost()**
+       * 计算帖子分数
+       * 将新发布的帖子id存入set去重的redis集合------addDiscussPost()
        */
       String redisKey = RedisKeyUtil.getPostScore();
       redisTemplate.opsForSet().add(redisKey, post.getId());
 ```
 
-    ### 2.2点赞时计算帖子分数
+### 2.2点赞时计算帖子分数
 
-```Java
+```java
       /**
-       *** 计算帖子分数
-       * 将****点赞****过的帖子id存入set去重的redis集合------****like()**
+       * 计算帖子分数
+       * 将点赞过的帖子id存入set去重的redis集合------like()
        */
       if (entityType == ENTITY_TYPE_POST) {
           String redisKey = RedisKeyUtil.getPostScore();
@@ -5138,34 +5280,34 @@ public class WebMvcConfig implements WebMvcConfigurer {
       }
 ```
 
-    ### 2.3评论时计算帖子分数
+### 2.3评论时计算帖子分数
 
-```Java
+```java
       if (comment.getEntityType() == ENTITY_TYPE_POST) {
           /**
-           *** 计算帖子分数
-           * 将****评论****过的帖子id存入set去重的redis集合------****addComment()**
-           */
+          * 计算帖子分数
+          * 将评论过的帖子id存入set去重的redis集合------addComment()
+          */
           String redisKey = RedisKeyUtil.getPostScore();
           redisTemplate.opsForSet().add(redisKey, discussPostId);
       }
 ```
 
-    ### 2.4加精时计算帖子分数
+### 2.4加精时计算帖子分数
 
-```Java
+```java
       /**
-      ** * 计算帖子分数
-       * 将****加精****的帖子id存入set去重的redis集合-------****setWonderful()**
+       * 计算帖子分数
+       * 将加精的帖子id存入set去重的redis集合-------setWonderful()
        */
       String redisKey = RedisKeyUtil.getPostScore();
       redisTemplate.opsForSet().add(redisKey, id);
 ```
 
-  ## 3.定义Quartz热帖排行Job
+## 3.定义Quartz热帖排行Job
 
-```Java
-/** 热帖排行定时刷新任务 **/
+```java
+/**热帖排行定时刷新任务**/
 public class PostScoreRefreshJob implements Job, CommunityConstant {
 
     private static final Logger logger = LoggerFactory.getLogger(PostScoreRefreshJob.class);
@@ -5193,7 +5335,7 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
         String redisKey = RedisKeyUtil.getPostScore();
         // 处理每一个key
-        **BoundSetOperations operations = redisTemplate.boundSetOps(redisKey);**
+        BoundSetOperations operations = redisTemplate.boundSetOps(redisKey);
 
         if (operations.size() == 0) {
             logger.info("[任务取消] 没有需要刷新的帖子");
@@ -5201,14 +5343,14 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
         }
 
         logger.info("[任务开始] 正在刷新帖子分数" + operations.size());
-**        while (operations.size() > 0) {
+        while (operations.size() > 0) {
             // 刷新每一个从set集合里弹出的postId
             this.refresh((Integer)operations.pop());
-        }**
+        }
         logger.info("[任务结束] 帖子分数刷新完毕！");
     }
     // 从redis中取出每一个value:postId
-    private void **refresh**(int postId) {
+    private void refresh(int postId) {
         DiscussPost post = discussPostService.findDiscussPostById(postId);
         if (post == null) {
             logger.error("该帖子不存在：id = " + postId);
@@ -5220,7 +5362,7 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
         }
 
         /**
-         * **帖子分数计算公式：[加精（75）+ 评论数 * 10 + 点赞数 * 2] + 距离天数**
+         * 帖子分数计算公式：[加精（75）+ 评论数*  10 + 点赞数*  2] + 距离天数
          */
         // 是否加精帖子
         boolean wonderful = post.getStatus() == 1;
@@ -5230,9 +5372,9 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
         int commentCount = post.getCommentCount();
 
         // 计算权重
-        double weight = (wonderful ? 75 : 0) + commentCount * 10 + liketCount * 2;
+        double weight = (wonderful ? 75 : 0) + commentCount*  10 + liketCount*  2;
         // 分数 = 取对数(帖子权重) + 距离天数
-        double score = Math.log10(Math.max(weight, 1)) + (post.getCreateTime().getTime() - epoch.getTime()) / (1000 * 3600 *24);
+        double score = Math.log10(Math.max(weight, 1)) + (post.getCreateTime().getTime() - epoch.getTime()) / (1000*  3600* 24);
 
         // 更新帖子分数
         discussPostService.updateScore(postId, score);
@@ -5243,21 +5385,21 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
 }
 ```
 
-  ## 4.配置Quartz的PostScoreRefreshJob
+## 4.配置Quartz的PostScoreRefreshJob
 
-```Java
-    **@Bean**
-    public JobDetailFactoryBean **postScoreRefreshJobDetail**() {
+```java
+    @Bean
+    public JobDetailFactoryBean postScoreRefreshJobDetail() {
         JobDetailFactoryBean factoryBean = new JobDetailFactoryBean();
-        factoryBean.setJobClass**(PostScoreRefreshJob.class**);
+        factoryBean.setJobClass(PostScoreRefreshJob.class);
         factoryBean.setName("postScoreRefreshJob");
         factoryBean.setGroup("communityGroup");
         factoryBean.setDurability(true);
         factoryBean.setRequestsRecovery(true);
         return factoryBean;
     }
-    **@Bean**
-    public SimpleTriggerFactoryBean PostScoreRefreshTrigger(JobDetail **postScoreRefreshJobDetail**) {
+    @Bean
+    public SimpleTriggerFactoryBean PostScoreRefreshTrigger(JobDetail postScoreRefreshJobDetail) {
         SimpleTriggerFactoryBean factoryBean = new SimpleTriggerFactoryBean();
         factoryBean.setJobDetail(postScoreRefreshJobDetail);
         factoryBean.setName("postScoreRefreshTrigger");
@@ -5268,17 +5410,17 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
     }
 ```
 
-  ## 5.修改主页帖子显示(Mapper、Service、Controller)
+## 5.修改主页帖子显示(Mapper、Service、Controller)
 
-    ### 5.1 Mapper
+### 5.1 Mapper
 
-```Java
-    // **orderMode=0：最新  orderMode=1：最热**
-    List<DiscussPost> selectDiscussPosts(@Param("userId") int userId, @Param("offset") int offset, @Param("limit") int limit,**@Param("orderMode")int ****orderMode**);
+```java
+    // orderMode=0：最新  orderMode=1：最热
+    List<DiscussPost> selectDiscussPosts(@Param("userId") int userId, @Param("offset") int offset, @Param("limit") int limit,@Param("orderMode")int orderMode);
 
 ```
 
-```SQL
+```sql
     <select id="selectDiscussPosts" resultType="DiscussPost">
         select
         <include refid="selectFields"></include>
@@ -5287,35 +5429,35 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
         <if test="userId!=0">
             and user_id=#{userId}
         </if>
-       ** <if test="****orderMode==0****">
+        <if test="orderMode==0">
             order by type desc,create_time desc
         </if>
-        <if test="****orderMode==1****">
+        <if test="orderMode==1">
             order by type desc,score desc,create_time desc
-        </if>**
+        </if>
         limit #{offset},#{limit}
     </select>
 ```
 
-    ### 5.2 Service
+### 5.2 Service
 
-```Java
+```java
     public List<DiscussPost> findDiscussPosts(int userId, int offset, int limit, int orderMode) {
         return discussPostMapper.selectDiscussPosts(userId, offset, limit, orderMode);
     }
 ```
 
-    ### 5.3 Controller
+### 5.3 Controller
 
-```Java
+```java
     @RequestMapping(value = "/index", method = RequestMethod.GET)
-    //** @RequestParam(name = "orderMode") 这是从前端传参数方法是：/index?xx 与Controller绑定**
-    public String getIndexPage(Model model, Page page,**@RequestParam****(name = "orderMode",defaultValue = "0") int ****orderMode**) {
+    // @RequestParam(name = "orderMode") 这是从前端传参数方法是：/index?xx 与Controller绑定
+    public String getIndexPage(Model model, Page page,@RequestParam(name = "orderMode",defaultValue = "0") int orderMode) {
         
         page.setRows(discussPostService.findDiscussPostRows(0));
-        **page.setPath("/index?orderMode=" + orderMode);**
+        page.setPath("/index?orderMode=" + orderMode);
 
-        **List<DiscussPost> list = discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit(), ****orderMode****);**
+        List<DiscussPost> list = discussPostService.findDiscussPosts(0, page.getOffset(), page.getLimit(), orderMode);
         List<Map<String, Object>> discussPost = new ArrayList<>();
 
         if (list!=null){
@@ -5330,32 +5472,30 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
             }
         }
         model.addAttribute("discussPosts", discussPost);
-**        model.addAttribute("orderMode", orderMode);
-**        return "/index";
+        model.addAttribute("orderMode", orderMode);
+        return "/index";
     }
 ```
 
-  ## 6编写前端页面实现切换最新/最热帖子显示
+## 6编写前端页面实现切换最新/最热帖子显示
 
-```HTML
+```html
   <!-- 切换最新/最热帖子 -->
   <li class="nav-item">
-    <a th:class="|nav-link **${orderMode==0?'active':''}**|" th:href="@{**/index(orderMode=0)**}">最新</a>
+    <a th:class="|nav-link ${orderMode==0?'active':''}|" th:href="@{/index(orderMode=0)}">最新</a>
   </li>
   <li class="nav-item">
-    <a th:class="|nav-link **${orderMode==1?'active':''}**|" th:href="@{**/index(orderMode=1)**}">最热</a>
+    <a th:class="|nav-link ${orderMode==1?'active':''}|" th:href="@{/index(orderMode=1)}">最热</a>
   </li>
 ```
 
-
-
 # 文件上传至云服务器(七牛云服务器)
 
-  ## 绑定云服务器
+## 绑定云服务器
 
-    ### 1.引入pom.xml
+### 1.引入pom.xml
 
-```XML
+```xml
     <!--七牛云服务器-->
     <dependency>
         <groupId>com.qiniu</groupId>
@@ -5364,9 +5504,9 @@ public class PostScoreRefreshJob implements Job, CommunityConstant {
     </dependency>
 ```
 
-    ### 2.配置yml文件（服务器参数）
+### 2.配置yml文件（服务器参数）
 
-```YAML
+```yaml
 # qiniu
 qiniu:
   # 七牛云密钥(个人设置->密钥管理)
@@ -5384,39 +5524,39 @@ qiniu:
       url: http://rcmscfkkw.hb-bkt.clouddn.com
 ```
 
-  ## 将头像上传至云服务器
+## 将头像上传至云服务器
 
-    ### 客户端上传：
+### 客户端上传：
 
-      **—将客户端数据提交给云服务器，并等待其响应**
+—将客户端数据提交给云服务器，并等待其响应
 
-      **—用户上传头像时，将表单数据提交给服务器**
+—用户上传头像时，将表单数据提交给服务器
 
-    ### 1.修改文件上传相应的Controller(这里是UserController)
+### 1.修改文件上传相应的Controller(这里是UserController)
 
-```Java
+```java
     @LoginRequired//自定义注解
     @RequestMapping(value = "/setting", method = RequestMethod.GET)
     public String getSettingPage(Model model) {
-        /****设置页面加载时就开始配置云服务器信息****/
-**        // 上传随机文件名称
-**        String fileName = CommunityUtil.generateUUID();
-**        // 设置返回给云服务器的响应信息（规定用StringMap）
-**        StringMap policy = new StringMap();
+        /**设置页面加载时就开始配置云服务器信息**/
+        // 上传随机文件名称
+        String fileName = CommunityUtil.generateUUID();
+        // 设置返回给云服务器的响应信息（规定用StringMap）
+        StringMap policy = new StringMap();
         policy.put("returnBody", CommunityUtil.getJSONString(0));
-**        // 生成上传云服务器的凭证
-**        Auth auth = Auth.create(accessKey, secretKey);
-**        // 上传指定文件名到云服务器指定空间，传入密钥，过期时间
-**        String uploadToken = auth.uploadToken(headerBucketName, fileName, 3600, policy);
-**        // 七牛云规定：表单需要携带的参数
-**        model.addAttribute("uploadToken", uploadToken);
+        // 生成上传云服务器的凭证
+        Auth auth = Auth.create(accessKey, secretKey);
+        // 上传指定文件名到云服务器指定空间，传入密钥，过期时间
+        String uploadToken = auth.uploadToken(headerBucketName, fileName, 3600, policy);
+        // 七牛云规定：表单需要携带的参数
+        model.addAttribute("uploadToken", uploadToken);
         model.addAttribute("fileName", fileName);
 
         return "/site/setting";
     }
 
     /**
-     * **异步更新头像路径（云服务器异步返回Json,而不是返回页面，不然乱套）**
+     * 异步更新头像路径（云服务器异步返回Json,而不是返回页面，不然乱套）
      */
     @RequestMapping(value = "/header/url", method = RequestMethod.POST)
     @ResponseBody
@@ -5433,26 +5573,26 @@ qiniu:
     }
 ```
 
-    ### 2.编写更新头像路径时js异步ajax
+### 2.编写更新头像路径时js异步ajax
 
-```JavaScript
+```javascript
 // 上传到七牛云服务器的异步处理方法
 $(function(){
     $("#uploadForm").submit(upload);
 });
 
 function upload() {
-**    // 表单异步提交文件不能用$.post--不能映射文件类型，所以用原生$.ajax
-**    $.ajax({
-**        // 七牛云华北地区上传地址
-**        url: "http://upload-z1.qiniup.com",
+    // 表单异步提交文件不能用$.post--不能映射文件类型，所以用原生$.ajax
+    $.ajax({
+        // 七牛云华北地区上传地址
+        url: "http://upload-z1.qiniup.com",
         method: "post",
-**        // 不要把表单内容转为字符串（因为是上传图片文件）
-**        processData: false,
-**        // 不让JQuery设置上传类型(使用浏览器默认处理方法将二进制文件随机加边界字符串)
-**        contentType: false,
-**        // 传文件时需要这样传data
-**        data: new FormData($("#uploadForm")[0]),
+        // 不要把表单内容转为字符串（因为是上传图片文件）
+        processData: false,
+        // 不让JQuery设置上传类型(使用浏览器默认处理方法将二进制文件随机加边界字符串)
+        contentType: false,
+        // 传文件时需要这样传data
+        data: new FormData($("#uploadForm")[0]),
         success: function(data) {
             if(data && data.code == 0) {
                 // 更新头像访问路径
@@ -5473,24 +5613,22 @@ function upload() {
             }
         }
     });
-**    // <form>表单没写action，就必须返回false
-**    return false;
+    // <form>表单没写action，就必须返回false
+    return false;
 }
 ```
 
-    
+## 将分享图片上传至云服务器
 
-  ## 将分享图片上传至云服务器
+### 服务器直传：
 
-    ### 服务器直传：
+**—本地应用服务器将数据直接提交给云服务器，并等待其响应**
 
-      **—本地应用服务器将数据直接提交给云服务器，并等待其响应**
+**—分享时，服务端将自动生成的图片，直接提交给云服务器**
 
-      **—分享时，服务端将自动生成的图片，直接提交给云服务器**
+### 1.编写生成长图到本地Controller(使用消息队列处理并发)
 
-    ### 1.编写生成长图到本地Controller(使用消息队列处理并发)
-
-```Java
+```java
 /**
  * wkhtmltopdf实现生成分享长图功能
  */
@@ -5539,14 +5677,14 @@ public class ShareController implements CommunityConstant {
 
 ```
 
-    ### 2.编写Kafka消费者—上传到云服务器
+### 2.编写Kafka消费者—上传到云服务器
 
-```Java
-    /** 执行wk命令行的位置 **/
+```java
+    /**执行wk命令行的位置**/
     @Value("${wk.image.command}")
     private String wkImageCommand;
 
-    /** 存储wk图片位置 **/
+    /**存储wk图片位置**/
     @Value("${wk.image.storage}")
     private String wkImageStorage;
     /**
@@ -5561,14 +5699,14 @@ public class ShareController implements CommunityConstant {
     @Value("${qiniu.bucket.share.name}")
     private String shareBucketName;
 
-    /** **定时器避免还没生成图片就上传服务器** **/
+    /**定时器避免还没生成图片就上传服务器**/
     @Autowired
-    private **ThreadPoolTaskScheduler** taskScheduler;
+    private ThreadPoolTaskScheduler taskScheduler;
     
     /**
      * 消费wkhtmltopdf分享事件
      */
-    @KafkaListener(topics = **TOPIC_SHARE**)
+    @KafkaListener(topics = TOPIC_SHARE)
     public void handleShareMessage(ConsumerRecord record) {
         if (record == null || record.value() == null) {
             logger.error("消息的内容为空!");
@@ -5594,8 +5732,8 @@ public class ShareController implements CommunityConstant {
             logger.error("生成长图失败: " + e.getMessage());
         }
 
-       ** // 启用定时器,监视该图片,一旦生成了,则上传至七牛云.
-        UploadTask task = new UploadTask(fileName, suffix);**
+        // 启用定时器,监视该图片,一旦生成了,则上传至七牛云.
+        UploadTask task = new UploadTask(fileName, suffix);
         Future future = taskScheduler.scheduleAtFixedRate(task, 500);
         task.setFuture(future);
     }
@@ -5623,7 +5761,7 @@ public class ShareController implements CommunityConstant {
         }
 
         @Override
-        public void **run()** {
+        public void run() {
             // 生成失败
             if (System.currentTimeMillis() - startTime > 30000) {
                 logger.error("执行时间过长,终止任务:" + fileName);
@@ -5671,27 +5809,25 @@ public class ShareController implements CommunityConstant {
     }
 ```
 
-
-
 # 使用Caffine本地缓存优化网站性能(缓存主页热门帖子)
 
-  ## 1.缓存概念
+## 1.缓存概念
 
-  ![](https://secure2.wostatic.cn/static/fYkmVayyKfpMsanGMyPxoH/1.PNG)
+![](image/1_smDsDxDSq8.PNG)
 
-  **注意：****本地缓存一般不缓存与用户相关的数据（如：登录凭证）原因如下图**
+注意：**本地缓存一般不缓存与用户相关的数据（如：登录凭证）原因如下图**
 
-![](https://secure2.wostatic.cn/static/pQeQthF3Cv47nhJDhfBd93/缓存.PNG)
+![](image/缓存_dFCbkzZUe-.PNG)
 
-**注意：****二级缓存流程如下图所示**
+注意：**二级缓存流程如下图所示**
 
-![](https://secure2.wostatic.cn/static/t6HpxtDYH4zmgDBqwFaZm9/二级缓存.PNG)
+![](image/二级缓存_pg01-CvUun.PNG)
 
 ## 2.引入caffine依赖项
 
-```XML
-**        <!--caffeine本地缓存优化热门帖子-->
-**        <dependency>
+```xml
+        <!--caffeine本地缓存优化热门帖子-->
+        <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
             <version>2.9.3</version>
@@ -5700,7 +5836,7 @@ public class ShareController implements CommunityConstant {
 
 ## 3.编写yml配置caffine全局变量
 
-```YAML
+```yaml
 # caffeine本地缓存优化热门帖子
 caffeine:
   posts:
@@ -5711,10 +5847,11 @@ caffeine:
 
 ## 4.修改DiscussPostService业务层分页查询方法
 
-```Java
+```java
     /**
-     * **使用caffine缓存热门帖子(可用Jmeter压力测试)**
-     * **Caffeine核心接口: Cache, LoadingCache(常用同步), AsyncLoadingCache(异步)**
+     * 使用caffine缓存热门帖子(可用Jmeter压力测试)
+     * QQ:260602448
+     * Caffeine核心接口: Cache, LoadingCache(常用同步), AsyncLoadingCache(异步)
      */
     @Value("${caffeine.posts.max-size}")
     private int maxSize;
@@ -5726,7 +5863,7 @@ caffeine:
     // 帖子总数缓存
     private LoadingCache<Integer, Integer> postRowsCache;
     
-    // **项目启动时初始化缓存**
+    // 项目启动时初始化缓存
     @PostConstruct
     public void init() {
         // 初始化帖子列表缓存
@@ -5769,43 +5906,39 @@ caffeine:
     }
 
     /**
-     * 主页分页查询帖子（**使用缓存查询热门帖子->即userId=0,orderMode=1**）
-     **/
+     * 主页分页查询帖子（使用缓存查询热门帖子->即userId=0,orderMode=1）
+     */
     public List<DiscussPost> findDiscussPosts(int userId, int offset, int limit, int orderMode) {
-        **if (userId == 0 && orderMode ==1) {
+        if (userId == 0 && orderMode ==1) {
             logger.debug("正在从Caffeine缓存中加载热门帖子！");
             return postListCache.get(offset + ":" + limit);
-        }**
+        }
         logger.debug("正在从数据库中加载热门帖子！");
         return discussPostMapper.selectDiscussPosts(userId, offset, limit, orderMode);
     }
 
     public int findDiscussPostRows(int userId) {
-        **// userId=0：查询所有帖子
+        // userId=0：查询所有帖子
         if (userId == 0) {
             logger.debug("正在从Caffeine缓存中加载热门帖子！");
             return postRowsCache.get(userId);
-        }**
+        }
         logger.debug("正在从数据库加载热门帖子总数！");
         return discussPostMapper.selectDiscussRows(userId);
     }
 ```
 
-
-
-
-
 # 统一处理异常
 
-  ![](https://secure2.wostatic.cn/static/q7xcUJkEZ2498kTw7977Rg/1.PNG)
+![](image/1_I_gGzxILnp.PNG)
 
-  ## 1.将error/404.html或500.html放在templates
+## 1.将error/404.html或500.html放在templates
 
-  **注意：****springboot默认在templates资源路径下面新建error目录，添加404.html和500.html页面就会自动配置上错误页面自动跳转**
+**注意：springboot默认在templates资源路径下面新建error目录，添加404.html和500.html页面就会自动配置上错误页面自动跳转**
 
-  ## 2.定义一个控制器通知组件，处理所有Controller所发生的异常
+## 2.定义一个控制器通知组件，处理所有Controller所发生的异常
 
-```Java
+```java
 @ControllerAdvice(annotations = Controller.class)
 public class ExceptionAdvice {
     private static final Logger logger = LoggerFactory.getLogger(ExceptionAdvice.class);
@@ -5832,46 +5965,42 @@ public class ExceptionAdvice {
 }
 ```
 
-```Java
+```java
 @RequestMapping(value = "error", method = RequestMethod.GET)
 public String getErrorPage(){
     return "/error/500";
 }
 ```
 
-
-
 # 统一记录日志
 
-  ## 1.AOP概念（面向切面编程）
+## 1.AOP概念（面向切面编程）
 
-     **常见的使用场景有：****权限检查、记录日志、事务管理**
+&#x20;常见的使用场景有：**权限检查、记录日志、事务管理**
 
-     **Joinpoint：****目标对象上织入代码的位置叫做joinpoint**
+&#x20;Joinpoint：**目标对象上织入代码的位置叫做joinpoint**
 
-     **Pointcut：****是用来定义当前的横切逻辑准备织入到哪些连接点上**（如service所有方法）
+&#x20;Pointcut：是用来定义当前的横切逻辑准备织入到哪些连接点上 （如service所有方法）
 
-     **Advice：****用来定义横切逻辑，即在连接点上准备织入什么样的逻辑**
+&#x20;Advice：**用来定义横切逻辑，即在连接点上准备织入什么样的逻辑**
 
-     **Aspect：****是一个用来封装切点和通知的组件**
+&#x20;Aspect：**是一个用来封装切点和通知的组件**
 
-     **织入：****就是将方面组件中定义的横切逻辑，织入到目标对象的连接点的过程**
+&#x20;织入：**就是将方面组件中定义的横切逻辑，织入到目标对象的连接点的过程**
 
-    
+![](image/4_xPUIZ71TO0.PNG)
 
-    ![](https://secure2.wostatic.cn/static/brbHeABZhWKzGbws8juLLM/4.PNG)
+![](image/2_MPbKb-xbzO.PNG)
 
-    ![](https://secure2.wostatic.cn/static/fAatWSKfe6vfsxYvuNfKK7/2.PNG)
+![](image/5_hXjDSXZaC0.PNG)
 
-    ![](https://secure2.wostatic.cn/static/kWayeQFn5HMj4NeBhtECoD/5.PNG)
+![](image/3_6Gz3IxyZ3d.PNG)
 
-    ![](https://secure2.wostatic.cn/static/nzWSBCJRSGiU5GkR6Wtd12/3.PNG)
+## 2.AOP切面编程Demo示例
 
-  ## 2.AOP切面编程Demo示例
+### 2.1导入pom.xml
 
-    ### 2.1导入pom.xml
-
-```XML
+```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-aop</artifactId>
@@ -5880,21 +6009,21 @@ public String getErrorPage(){
 
 ```
 
-    ### 2.2编写Aspect类
+### 2.2编写Aspect类
 
-```Java
+```java
 @Component
 @Aspect
 public class DemoAspect {
     /**
-     * **第一个* ：方法的任何返回值**
-     * **com.xmy.demonowcoder.service.*.*(..)) ：service包下的所有类所有方法所有参数(..)**
+      *第一个* ：方法的任何返回值
+     * com.xmy.demonowcoder.service.*. *(..)) ：service包下的所有类所有方法所有参数(..)
      */
-    **@Pointcut("execution(* com.xmy.demonowcoder.service.*.*(..))")**
+    @Pointcut("execution(* com.xmy.demonowcoder.service. *.*(..))")
     public void pointcut(){}
 
-    /****切点方法之前执行(常用)****/
-    **@Before**("pointcut()")
+    /**切点方法之前执行(常用)**/
+    @Before("pointcut()")
     public void before(){
         System.out.println("before");
     }
@@ -5924,49 +6053,45 @@ public class DemoAspect {
 }
 ```
 
-    
+## 3.AOP实现统一记录日志
 
-  ## 3.AOP实现统一记录日志
+**实现需求** ：用户ip地址\[1.2.3.4],在[xxx],访问了\[ **[com.nowcoder.community.service.xxx ](http://com.nowcoder.community.service.xxx "com.nowcoder.community.service.xxx")**()]业务.\\&#x20;
 
-    **实现需求****：用户ip地址[1.2.3.4],在[xxx],访问了[**[**com.nowcoder.community.service.xxx**](http://com.nowcoder.community.service.xxx)**()]业务.**
-
-```Java
+```java
 @Component
-**@Aspect**
+@Aspect
 public class ServiceLogAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceLogAspect.class);
 
-    **@Pointcut**("**execution(* com.xmy.demonowcoder.service.*.*(..))**")
+    @Pointcut("execution(* com.xmy.demonowcoder.service.*. *(..))")
     public void pointcut(){}
 
-    **@Before**("pointcut()")
+    @Before("pointcut()")
     public void before(JoinPoint joinPoint){
         // 用户ip[1.2.3.4],在[xxx],访问了[com.nowcoder.community.service.xxx()].
         // 通过RequestContextHolder获取request
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
-        // **通过request.getRemoteHost获取当前用户ip**
-        String ip = request.**getRemoteHost()**;
+        // 通过request.getRemoteHost获取当前用户ip
+        String ip = request.getRemoteHost();
         String time = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         /**
-        ** * joinPoint.getSignature().getDeclaringTypeName()-->com.nowcoder.community.service
-         * joinPoint.getSignature().getName() -->方法名**
-         **/
-        String target = joinPoint.**getSignature().getDeclaringTypeName()** + "." +joinPoint.**getSignature().getName()**;
+         * joinPoint.getSignature().getDeclaringTypeName()-->com.nowcoder.community.service
+         * joinPoint.getSignature().getName() -->方法名
+         */
+        String target = joinPoint.getSignature().getDeclaringTypeName() + "." +joinPoint.getSignature().getName();
         // String.format()加工字符串
         logger.info(String.format("用户[%s],在[%s],访问了[%s]业务.", ip, time, target));
     }
 }
 ```
 
-
-
 # 项目监控（Springboot actuator）
 
-  ## 1.引入pom.xml依赖
+## 1.引入pom.xml依赖
 
-```XML
+```xml
         <!-- actuator项目监控-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -5976,9 +6101,9 @@ public class ServiceLogAspect {
 
 ```
 
-  ## 2.配置yml文件
+## 2.配置yml文件
 
-```YAML
+```yaml
 # actuator项目监控
 management:
   endpoints:
@@ -5987,14 +6112,15 @@ management:
         include: beans,database,info,health
 ```
 
-  ## 3.自定义监控id(database数据库监控)
+## 3.自定义监控id(database数据库监控)
 
-```Java
+```java
 /**
+ * QQ:260602448--xumingyu
  * 自定义项目监控类
- **/
+ */
 @Component
-**@Endpoint**(id = "database")
+@Endpoint(id = "database")
 public class DatabaseEndpoint {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseEndpoint.class);
 
@@ -6002,7 +6128,7 @@ public class DatabaseEndpoint {
     private DataSource dataSource;
 
     // 相当于GET请求
-    **@ReadOperation**
+    @ReadOperation
     public String checkConnection() {
         try (
                 // 放到try这个位置就不用释放资源，底层自动释放
@@ -6015,16 +6141,18 @@ public class DatabaseEndpoint {
         }
     }}
 ```
+## 4.使用SpringSecurity设置访问权限
 
-  ## 4.使用SpringSecurity设置访问权限
-
-```Java
+```java
     .antMatchers(
             "/discuss/delete",
-            "/data/**",
-            **"/actuator/**"**
+            "/data/* *",
+            "/actuator/* *"
     )
     .hasAnyAuthority(
             AUTHORITY_ADMIN
     )
 ```
+
+## 参考
+  - https://blog.csdn.net/lijiaming_99/article/details/124931663
